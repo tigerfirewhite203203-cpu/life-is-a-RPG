@@ -3,30 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Site GitHub Pages</title>
-    
-    <!-- LE SECRET : On charge Tailwind via un lien (CDN) -->
-    <!-- Pas besoin d'installation, ça marche direct sur GitHub ! -->
+    <title>Life RPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
+        .progress-bar-fill { transition: width 0.5s ease-in-out; }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="p-4 md:p-8">
+    <div class="max-w-md mx-auto">
+        <!-- STATS CARD -->
+        <div class="bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-sm font-bold text-blue-400 uppercase tracking-widest">Niveau <span id="level-val">1</span></span>
+                <span class="text-sm font-bold text-yellow-500">💰 <span id="gold-val">0</span></span>
+            </div>
+            
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs text-slate-400">
+                    <span>Expérience</span>
+                    <span id="xp-percent">0%</span>
+                </div>
+                <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
+                    <div id="xp-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="text-xs text-slate-500 text-right" id="xp-total-text">0 / 100</div>
+            </div>
+        </div>
 
-    <div class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-sm">
-        <h1 class="text-3xl font-bold text-blue-600 mb-4">Succès ! 🎉</h1>
-        <p class="text-gray-600 mb-6">
-            Ce site fonctionne directement sur GitHub sans aucun serveur ni configuration complexe.
-        </p>
-        
-        <button id="btnAction" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition duration-300">
-            Clique sur moi
-        </string>
-        
-        <p id="message" class="mt-4 text-green-600 font-medium hidden">
-            Le JavaScript fonctionne aussi ! ✨
-        </p>
+        <!-- INPUT SECTION -->
+        <div class="bg-slate-800 p-4 rounded-xl mb-6 shadow-lg">
+            <input type="text" id="task-input" placeholder="Nouvelle mission..." class="w-full bg-slate-700 border-none rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 mb-3 outline-none">
+            <div class="flex gap-2">
+                <button onclick="addTask(1)" class="flex-1 bg-blue-600 hover:bg-blue-500 p-2 rounded-lg font-bold text-sm transition">Facile</button>
+                <button onclick="addTask(2)" class="flex-1 bg-purple-600 hover:bg-purple-500 p-2 rounded-lg font-bold text-sm transition">Moyen</button>
+                <button onclick="addTask(3)" class                class="flex-1 bg-red-600 hover:bg-red-500 p-2 rounded-lg font-bold text-sm transition">Dur</button>
+            </div>
+        </div>
+
+        <!-- QUEST LIST -->
+        <h2 class="text-slate-400 font-bold mb-3 uppercase text-xs tracking-widest">Missions en cours (<span id="quest-count">0</span>)</h2>
+        <div id="quest-list" class="space-y-3">
+            <!-- Quests will appear here -->
+        </div>
     </div>
 
-    <!-- On lie le fichier JavaScript -->
-    <script src="script.js"></script>
+    <script>
+        let state = {
+            level: 1,
+            xp: 0,
+            xpNext: 100,
+            gold: 0,
+            quests: []
+        };
+
+        // Load from LocalStorage
+        const saved = localStorage.getItem('rpg_save');
+        if (saved) state = JSON.parse(saved);
+
+        function save() {
+            localStorage.setItem('rpg_save', JSON.stringify(state));
+            render();
+        }
+
+        function addTask(difficulty) {
+            const input = document.getElementById('task-input');
+            if (!input.value.trim()) return;
+            
+            const quest = {
+                id: Date.now(),
+                text: input.value,
+                difficulty: difficulty, // 1: easy, 2: medium, 3: hard
+                reward: difficulty * 20
+            };
+            
+            state.quests.push(quest);
+            input.value = '';
+            save();
+        }
+
+        function completeQuest(id) {
+            const index = state.quests.findIndex(q => q.id === id);
+            if (index > -1) {
+                const quest = state.quests[index];
+                state.xp += quest.reward;
+                
+                // Level Up Logic
+                if (state.xp >= state.xpNext) {
+                    state.xp -= state.xpNext;
+                    state.level++;
+                    state.xpNext = Math.floor(state.xpNext * 1.2);
+                    alert("LEVEL UP! Vous êtes maintenant niveau " + state.level);
+                }
+                
+                state.quests.splice(index, 1);
+                save();
+            }
+        }
+
+        function deleteQuest(id) {
+            state.quests = state.quests.filter(q => q.id !== id);
+            save();
+        }
+
+        function render() {
+            // Render Stats
+            document.getElementById('xp-bar').style.width = (state.xp / state.xpNext * 100) + '%';
+            document.getElementById('xp-total-text').innerText = `${Math.floor(state.xp)} / ${state.xpNext}`;
+            document.getElementById('xp-percent').innerText = Math.floor((state.xp / state.prototypeNext || 1) * 100) + '%'; // Simplified
+            // Correcting the text logic
+            document.querySelector('#xp-percent').innerText = Math.floor((state.xp / state.xpNext) * 100) + '%';
+            
+            // Render List
+            const list = document.getElementById('quest-list');
+            const countEl = document.getElementById('quest-count');
+            list.innerHTML = '';
+            countEl.innerText = state.quests.length;
+
+            state.quests.forEach(q => {
+                const color = q.difficulty === 1 ? 'border-blue-500' : q.difficulty === 2 ? 'border-purple-500' : 'border-red-500';
+                const div = document.createElement('div');
+                div.className = `bg-slate-800 p-4 rounded-xl border-l-4 ${color} flex justify-between items-center shadow-md`;
+                div.innerHTML = `
+                    <div>
+                        <p class="text-white font-medium">${q.text}</p>
+                        <p class="text-xs text-slate-500">+${q.reward} XP</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="completeQuest(${q.id})" class="bg-green-600 p-2 rounded-lg text-xs font-bold">OK</button>
+                        <button onclick="deleteQuest(${q.id})" class="bg-slate-700 p-2 rounded-lg text-xs font-bold text-red-400">X</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Initial render
+        render();
+    </script>
 </body>
 </html>
