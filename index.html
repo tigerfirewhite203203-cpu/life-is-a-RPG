@@ -1,235 +1,799 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Level Up My Life</title>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --bg: #0f172a;
-            --card: #1e293b;
-            --text: #f8fafc;
-            --accent: #22c55e;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>LifeQuest RPG</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #0a0a12;
+  --bg2: #12121f;
+  --bg3: #1a1a2e;
+  --gold: #f0c040;
+  --gold-dim: #a08020;
+  --xp: #00e5ff;
+  --hp: #ff4060;
+  --str: #ff6b35;
+  --int: #7b68ee;
+  --dex: #00e676;
+  --cha: #ff69b4;
+  --wis: #ffd700;
+  --end: #20b2aa;
+  --text: #e0e0e8;
+  --text2: #8888a0;
+  --success: #00e676;
+  --fail: #ff4060;
+  --border: rgba(240,192,64,0.15);
+  --glow: 0 0 20px rgba(240,192,64,0.3);
+}
+html, body { 
+  height:100%; 
+  background: var(--bg); 
+  color: var(--text); 
+  font-family: 'Rajdhani', sans-serif;
+  overflow-x: hidden;
+}
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: 
+    radial-gradient(ellipse at 20% 50%, rgba(123,104,238,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(0,229,255,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(240,192,64,0.03) 0%, transparent 50%);
+  pointer-events:none;
+  z-index:0;
+}
+#root { position:relative; z-index:1; min-height:100vh; }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
+/* Scrollbar */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--gold-dim); border-radius:2px; }
 
-        /* Écrans */
-        .screen {
-            background: var(--card);
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .hidden { display: none; }
-
-        /* Setup Screen - Sélection des objectifs */
-        .goal-option {
-            background: #334155;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .goal-option:hover { border-color: var(--primary); }
-        .goal-option.selected { background: var(--primary); color: white; }
-
-        /* Dashboard Screen */
-        .stats-container {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .progress-bar-bg {
-            background: #334155;
-            height: 15px;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-
-        #progress-fill {
-            background: var(--accent);
-            width: 0%;
-            height: 100%;
-            transition: width 0.4s ease;
-        }
-
-        .task-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #334            155;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-
-        .task-item.completed {
-            opacity: 0.5;
-            text-decoration: line-through;
-        }
-
-        /* Animations */
-        @keyframes pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-
-        .level-up-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--accent);
-            color: white;
-            padding: 2rem;
-            border-radius: 20px;
-            font-size: 2rem;
-            font-weight: bold;
-            z-index: 100;
-            display: none;
-            animation: pop 0.5s ease;
-        }
-
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-    </style>
+/* Animations */
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+@keyframes levelUp { 
+  0%{transform:scale(1);filter:brightness(1)} 
+  50%{transform:scale(1.15);filter:brightness(1.8)} 
+  100%{transform:scale(1);filter:brightness(1)} 
+}
+@keyframes xpGain {
+  0%{opacity:1;transform:translateY(0)} 
+  100%{opacity:0;transform:translateY(-40px)} 
+}
+@keyframes slideIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes barFill { from{width:0} }
+</style>
 </head>
 <body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
-    <!-- POPUP LEVEL UP -->
-    <div id="level-up-popup" class="level-up-popup">LEVEL UP! 🎉</div>
+// ─── DATA & HELPERS ───
+const STAT_CATEGORIES = [
+  { id:'str', name:'Force', icon:'⚔️', color:'var(--str)', desc:'Sport, physique, endurance' },
+  { id:'int', name:'Intelligence', icon:'📚', color:'var(--int)', desc:'Études, lecture, apprentissage' },
+  { id:'dex', name:'Discipline', icon:'🎯', color:'var(--dex)', desc:'Habitudes, routine, régularité' },
+  { id:'cha', name:'Social', icon:'💬', color:'var(--cha)', desc:'Relations, communication' },
+  { id:'wis', name:'Sagesse', icon:'🧘', color:'var(--wis)', desc:'Méditation, réflexion, santé mentale' },
+  { id:'end', name:'Vitalité', icon:'💚', color:'var(--end)', desc:'Sommeil, nutrition, hydratation' },
+];
 
-    <!-- SCREEN 1: SETUP -->
-    <div id="setup-screen" class="screen">
-        <h2>Choisir tes Quêtes</h2>
-        <p>Sélectionne tes objectifs pour commencer</p>
-        <div id => goals-list>
-            <div class="goal-option" onclick="toggleGoal(this, 'Sport')">🏋️ Sport</div>
-            <div class="goal-option" onclick="toggleGoal(this, 'Lecture')">📚 Lecture</div>
-            <div class="goal-option" onclick="toggleGoal(this, 'Code')">💻 Apprendre le Code</div>
-            <div class="goal-option" onclick="toggleGoal(this, 'Méditation')">🧘 Méditation</div>
+const TITLES = [
+  {lvl:1,t:'Vagabond'},{lvl:5,t:'Apprenti'},{lvl:10,t:'Aventurier'},{lvl:15,t:'Guerrier'},
+  {lvl:20,t:'Champion'},{lvl:25,t:'Héros'},{lvl:30,t:'Légende'},{lvl:40,t:'Mythique'},
+  {lvl:50,t:'Divin'},{lvl:75,t:'Transcendant'},{lvl:100,t:'Immortel'}
+];
+
+const xpForLevel = (lvl) => Math.floor(100 * Math.pow(1.15, lvl - 1));
+const getTitle = (lvl) => [...TITLES].reverse().find(t => lvl >= t.lvl)?.t || 'Novice';
+const todayStr = () => new Date().toISOString().slice(0,10);
+const daysBetween = (a,b) => Math.floor((new Date(b)-new Date(a))/(86400000));
+
+const DEFAULT_STATE = {
+  playerName: '',
+  objectives: [],
+  logs: {},
+  createdAt: todayStr(),
+};
+
+const loadState = () => {
+  try { return JSON.parse(localStorage.getItem('lifequest_v2')) || DEFAULT_STATE; }
+  catch { return DEFAULT_STATE; }
+};
+const saveState = (s) => localStorage.setItem('lifequest_v2', JSON.stringify(s));
+
+// ─── COMPONENTS ───
+
+// XP Float animation
+function XPFloat({ amount, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 1000); return ()=>clearTimeout(t); }, []);
+  return <span style={{
+    position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
+    color:'var(--xp)', fontSize:'2rem', fontFamily:"'Press Start 2P'", pointerEvents:'none',
+    animation:'xpGain 1s ease-out forwards', zIndex:9999, textShadow:'0 0 20px var(--xp)'
+  }}>+{amount} XP</span>;
+}
+
+// Progress Bar
+function Bar({ value, max, color, height=8, animated=false, label }) {
+  const pct = Math.min(100, (value/max)*100);
+  return <div style={{position:'relative',width:'100%'}}>
+    {label && <div style={{display:'flex',justifyContent:'space-between',marginBottom:3,fontSize:'0.75rem',color:'var(--text2)'}}>
+      <span>{label}</span><span>{value}/{max}</span>
+    </div>}
+    <div style={{width:'100%',height,background:'rgba(255,255,255,0.06)',borderRadius:height/2,overflow:'hidden'}}>
+      <div style={{
+        width:pct+'%', height:'100%', borderRadius:height/2,
+        background:`linear-gradient(90deg, ${color}, ${color}dd)`,
+        boxShadow:`0 0 10px ${color}40`,
+        animation: animated ? 'barFill 0.8s ease-out' : 'none',
+        transition:'width 0.5s ease'
+      }}/>
+    </div>
+  </div>;
+}
+
+// Stat Hexagon
+function StatCard({ stat, value, onClick }) {
+  return <div onClick={onClick} style={{
+    display:'flex', flexDirection:'column', alignItems:'center', gap:4, cursor:'pointer',
+    padding:'12px 8px', borderRadius:12, background:'rgba(255,255,255,0.03)',
+    border:'1px solid rgba(255,255,255,0.05)', transition:'all 0.3s',
+    minWidth:80, flex:1,
+  }}
+  onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.borderColor=stat.color+'40'}}
+  onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.03)';e.currentTarget.style.borderColor='rgba(255,255,255,0.05)'}}
+  >
+    <span style={{fontSize:'1.5rem'}}>{stat.icon}</span>
+    <span style={{fontSize:'0.65rem',color:'var(--text2)',textTransform:'uppercase',letterSpacing:1}}>{stat.name}</span>
+    <span style={{fontSize:'1.4rem',fontWeight:700,color:stat.color,fontFamily:"'Cinzel'"}}>{value}</span>
+  </div>;
+}
+
+// ─── PAGES ───
+
+// SETUP PAGE
+function SetupPage({ onComplete }) {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState('');
+  const [objectives, setObjectives] = useState([]);
+  const [newObj, setNewObj] = useState('');
+  const [newCat, setNewCat] = useState('str');
+  const [newDiff, setNewDiff] = useState(2);
+
+  const addObj = () => {
+    if (!newObj.trim()) return;
+    setObjectives(p=>[...p, { id: Date.now(), name:newObj.trim(), cat:newCat, diff:newDiff, active:true }]);
+    setNewObj('');
+  };
+
+  const removeObj = (id) => setObjectives(p=>p.filter(o=>o.id!==id));
+
+  const finish = () => {
+    if (objectives.length === 0) return;
+    onComplete({ playerName: name || 'Héros', objectives });
+  };
+
+  const diffLabels = ['Facile','Normal','Difficile','Épique','Légendaire'];
+  const diffColors = ['var(--success)','var(--xp)','var(--str)','var(--int)','var(--gold)'];
+
+  return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+    <div style={{maxWidth:500,width:'100%',animation:'fadeIn 0.6s ease-out'}}>
+      
+      {step === 0 && <div style={{textAlign:'center'}}>
+        <div style={{fontSize:'3rem',marginBottom:8}}>⚔️</div>
+        <h1 style={{fontFamily:"'Cinzel'",fontSize:'2rem',color:'var(--gold)',marginBottom:8}}>LifeQuest</h1>
+        <p style={{color:'var(--text2)',marginBottom:32,fontSize:'1.1rem'}}>Transforme ta vie en RPG</p>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Ton nom de héros..."
+          style={{
+            width:'100%',padding:'14px 20px',background:'var(--bg2)',border:'1px solid var(--border)',
+            borderRadius:12,color:'var(--text)',fontSize:'1.1rem',fontFamily:"'Rajdhani'",
+            outline:'none',textAlign:'center',marginBottom:20
+          }}
+          onFocus={e=>e.target.style.borderColor='var(--gold)'}
+          onBlur={e=>e.target.style.borderColor='var(--border)'}
+        />
+        <button onClick={()=>setStep(1)} style={{
+          width:'100%',padding:'14px',background:'linear-gradient(135deg,var(--gold),var(--gold-dim))',
+          border:'none',borderRadius:12,color:'var(--bg)',fontSize:'1.1rem',fontWeight:700,
+          fontFamily:"'Cinzel'",cursor:'pointer',letterSpacing:1
+        }}>Commencer l'aventure</button>
+      </div>}
+
+      {step === 1 && <div>
+        <h2 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:4,fontSize:'1.3rem'}}>
+          Définis tes quêtes quotidiennes
+        </h2>
+        <p style={{color:'var(--text2)',marginBottom:20,fontSize:'0.9rem'}}>
+          Ajoute les objectifs que tu veux tracker chaque jour
+        </p>
+
+        {/* Add form */}
+        <div style={{background:'var(--bg2)',borderRadius:12,padding:16,marginBottom:16,border:'1px solid var(--border)'}}>
+          <input value={newObj} onChange={e=>setNewObj(e.target.value)} placeholder="Ex: 30min de sport, lire 20 pages..."
+            onKeyDown={e=>e.key==='Enter'&&addObj()}
+            style={{width:'100%',padding:'10px 14px',background:'var(--bg3)',border:'1px solid rgba(255,255,255,0.08)',
+              borderRadius:8,color:'var(--text)',fontSize:'1rem',fontFamily:"'Rajdhani'",outline:'none',marginBottom:12}}
+          />
+          
+          {/* Category select */}
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
+            {STAT_CATEGORIES.map(s => 
+              <button key={s.id} onClick={()=>setNewCat(s.id)} style={{
+                padding:'6px 12px',borderRadius:20,border:'1px solid',fontSize:'0.8rem',cursor:'pointer',
+                background: newCat===s.id ? s.color+'20' : 'transparent',
+                borderColor: newCat===s.id ? s.color : 'rgba(255,255,255,0.1)',
+                color: newCat===s.id ? s.color : 'var(--text2)',
+              }}>{s.icon} {s.name}</button>
+            )}
+          </div>
+
+          {/* Difficulty */}
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+            <span style={{fontSize:'0.8rem',color:'var(--text2)',minWidth:55}}>Difficulté:</span>
+            <div style={{display:'flex',gap:4,flex:1}}>
+              {diffLabels.map((d,i) => 
+                <button key={i} onClick={()=>setNewDiff(i+1)} style={{
+                  flex:1,padding:'5px 2px',borderRadius:6,border:'1px solid',fontSize:'0.7rem',cursor:'pointer',
+                  background: newDiff===i+1 ? diffColors[i]+'20' : 'transparent',
+                  borderColor: newDiff===i+1 ? diffColors[i] : 'rgba(255,255,255,0.08)',
+                  color: newDiff===i+1 ? diffColors[i] : 'var(--text2)',
+                }}>{d}</button>
+              )}
+            </div>
+          </div>
+
+          <button onClick={addObj} style={{
+            width:'100%',padding:'10px',background:'var(--bg3)',border:'1px solid var(--border)',
+            borderRadius:8,color:'var(--gold)',fontSize:'0.95rem',cursor:'pointer',fontFamily:"'Rajdhani'",fontWeight:600
+          }}>+ Ajouter cette quête</button>
         </div>
-        <button onclick="startGame()">Commencer l'aventure</button>
+
+        {/* Objectives list */}
+        <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:20,maxHeight:300,overflowY:'auto',paddingRight:4}}>
+          {objectives.map((o,i) => {
+            const cat = STAT_CATEGORIES.find(s=>s.id===o.cat);
+            return <div key={o.id} style={{
+              display:'flex',alignItems:'center',gap:10,padding:'10px 14px',
+              background:'var(--bg2)',borderRadius:10,border:'1px solid rgba(255,255,255,0.05)',
+              animation:`slideIn 0.3s ease-out ${i*0.05}s both`
+            }}>
+              <span>{cat?.icon}</span>
+              <span style={{flex:1,fontSize:'0.95rem'}}>{o.name}</span>
+              <span style={{fontSize:'0.7rem',color:diffColors[o.diff-1],padding:'2px 8px',
+                background:diffColors[o.diff-1]+'15',borderRadius:10}}>{diffLabels[o.diff-1]}</span>
+              <button onClick={()=>removeObj(o.id)} style={{background:'none',border:'none',color:'var(--fail)',cursor:'pointer',fontSize:'1.1rem'}}>×</button>
+            </div>;
+          })}
+        </div>
+
+        {objectives.length > 0 && <button onClick={finish} style={{
+          width:'100%',padding:'14px',background:'linear-gradient(135deg,var(--gold),var(--gold-dim))',
+          border:'none',borderRadius:12,color:'var(--bg)',fontSize:'1.1rem',fontWeight:700,
+          fontFamily:"'Cinzel'",cursor:'pointer',letterSpacing:1
+        }}>Lancer la quête ({objectives.length} objectifs)</button>}
+        
+        {objectives.length === 0 && <p style={{textAlign:'center',color:'var(--text2)',fontSize:'0.85rem'}}>
+          Ajoute au moins 1 objectif pour continuer
+        </p>}
+      </div>}
+    </div>
+  </div>;
+}
+
+// MAIN DASHBOARD
+function Dashboard({ state, setState }) {
+  const [view, setView] = useState('daily'); // daily, stats, history, settings
+  const [xpFloats, setXpFloats] = useState([]);
+  const [levelUpAnim, setLevelUpAnim] = useState(false);
+  const today = todayStr();
+  const todayLog = state.logs[today] || {};
+
+  // Computed stats
+  const computed = useMemo(() => {
+    const logs = state.logs;
+    const days = Object.keys(logs).sort();
+    let totalXP = 0;
+    const statXP = {};
+    STAT_CATEGORIES.forEach(s => statXP[s.id] = 0);
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let tempStreak = 0;
+    const dailyScores = [];
+
+    days.forEach((day, idx) => {
+      const log = logs[day];
+      let dayDone = 0, dayTotal = 0;
+      state.objectives.filter(o=>o.active).forEach(o => {
+        dayTotal++;
+        if (log[o.id]) {
+          dayDone++;
+          const xp = o.diff * 10;
+          totalXP += xp;
+          statXP[o.cat] = (statXP[o.cat]||0) + xp;
+        }
+      });
+      const score = dayTotal > 0 ? Math.round((dayDone/dayTotal)*100) : 0;
+      dailyScores.push({ day, score, done:dayDone, total:dayTotal });
+      
+      if (score >= 50) {
+        tempStreak++;
+        if (tempStreak > bestStreak) bestStreak = tempStreak;
+      } else { tempStreak = 0; }
+    });
+
+    // Current streak (from today backwards)
+    currentStreak = 0;
+    for (let i = days.length - 1; i >= 0; i--) {
+      const log = logs[days[i]];
+      let done = 0, total = 0;
+      state.objectives.filter(o=>o.active).forEach(o => { total++; if(log[o.id]) done++; });
+      if (total > 0 && (done/total) >= 0.5) currentStreak++;
+      else break;
+    }
+
+    // Streak bonus
+    totalXP += currentStreak * 5;
+
+    let level = 1;
+    let xpUsed = 0;
+    while (totalXP - xpUsed >= xpForLevel(level)) {
+      xpUsed += xpForLevel(level);
+      level++;
+    }
+    const currentLevelXP = totalXP - xpUsed;
+    const nextLevelXP = xpForLevel(level);
+
+    // Stat levels
+    const statLevels = {};
+    STAT_CATEGORIES.forEach(s => {
+      let sl = 1, su = 0;
+      while (statXP[s.id] - su >= sl * 50) { su += sl * 50; sl++; }
+      statLevels[s.id] = sl;
+    });
+
+    // Weekly performance
+    const last7 = dailyScores.slice(-7);
+    const weekAvg = last7.length > 0 ? Math.round(last7.reduce((a,d)=>a+d.score,0)/last7.length) : 0;
+    
+    // Prev week
+    const prev7 = dailyScores.slice(-14,-7);
+    const prevAvg = prev7.length > 0 ? Math.round(prev7.reduce((a,d)=>a+d.score,0)/prev7.length) : 0;
+    const trend = weekAvg - prevAvg;
+
+    return { totalXP, level, currentLevelXP, nextLevelXP, statXP, statLevels, 
+             currentStreak, bestStreak, dailyScores, weekAvg, trend, daysPlayed: days.length };
+  }, [state]);
+
+  const toggleObjective = (objId) => {
+    const wasComplete = todayLog[objId];
+    const newLogs = { ...state.logs, [today]: { ...todayLog, [objId]: !wasComplete } };
+    const newState = { ...state, logs: newLogs };
+    
+    if (!wasComplete) {
+      const obj = state.objectives.find(o=>o.id===objId);
+      const xp = obj.diff * 10;
+      const floatId = Date.now();
+      setXpFloats(p=>[...p, { id:floatId, amount:xp }]);
+
+      // Check level up
+      const oldLevel = computed.level;
+      // Quick recalc
+      let tXP = computed.totalXP + xp;
+      let nl = 1, nu = 0;
+      while (tXP - nu >= xpForLevel(nl)) { nu += xpForLevel(nl); nl++; }
+      if (nl > oldLevel) setLevelUpAnim(true);
+    }
+
+    setState(newState);
+    saveState(newState);
+  };
+
+  const activeObjs = state.objectives.filter(o=>o.active);
+  const todayDone = activeObjs.filter(o=>todayLog[o.id]).length;
+  const todayScore = activeObjs.length > 0 ? Math.round((todayDone/activeObjs.length)*100) : 0;
+  const title = getTitle(computed.level);
+
+  // Level up modal
+  useEffect(() => {
+    if (levelUpAnim) { const t = setTimeout(()=>setLevelUpAnim(false), 2000); return ()=>clearTimeout(t); }
+  }, [levelUpAnim]);
+
+  // Add objective
+  const [showAdd, setShowAdd] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addCat, setAddCat] = useState('str');
+  const [addDiff, setAddDiff] = useState(2);
+
+  const addObjective = () => {
+    if (!addName.trim()) return;
+    const newObj = { id: Date.now(), name:addName.trim(), cat:addCat, diff:addDiff, active:true };
+    const newState = { ...state, objectives: [...state.objectives, newObj] };
+    setState(newState);
+    saveState(newState);
+    setAddName(''); setShowAdd(false);
+  };
+
+  const toggleObjActive = (id) => {
+    const newState = { ...state, objectives: state.objectives.map(o => o.id===id ? {...o,active:!o.active} : o) };
+    setState(newState);
+    saveState(newState);
+  };
+
+  const deleteObj = (id) => {
+    const newState = { ...state, objectives: state.objectives.filter(o=>o.id!==id) };
+    setState(newState);
+    saveState(newState);
+  };
+
+  const resetAll = () => {
+    if (confirm('⚠️ Supprimer TOUTES les données ? Cette action est irréversible.')) {
+      localStorage.removeItem('lifequest_v2');
+      window.location.reload();
+    }
+  };
+
+  const diffLabels = ['Facile','Normal','Difficile','Épique','Légendaire'];
+  const diffColors = ['var(--success)','var(--xp)','var(--str)','var(--int)','var(--gold)'];
+
+  const navItems = [
+    { id:'daily', icon:'⚔️', label:'Quêtes' },
+    { id:'stats', icon:'📊', label:'Stats' },
+    { id:'history', icon:'📜', label:'Journal' },
+    { id:'settings', icon:'⚙️', label:'Config' },
+  ];
+
+  return <div style={{maxWidth:500,margin:'0 auto',paddingBottom:80,minHeight:'100vh'}}>
+    {/* XP Floats */}
+    {xpFloats.map(f => <XPFloat key={f.id} amount={f.amount} onDone={()=>setXpFloats(p=>p.filter(x=>x.id!==f.id))} />)}
+
+    {/* Level Up Overlay */}
+    {levelUpAnim && <div style={{
+      position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',
+      background:'rgba(0,0,0,0.8)',zIndex:9998,animation:'fadeIn 0.3s'
+    }}>
+      <div style={{textAlign:'center',animation:'levelUp 1s ease-in-out'}}>
+        <div style={{fontSize:'4rem',marginBottom:8}}>🏆</div>
+        <div style={{fontFamily:"'Press Start 2P'",fontSize:'1.2rem',color:'var(--gold)',marginBottom:8}}>LEVEL UP!</div>
+        <div style={{fontFamily:"'Cinzel'",fontSize:'2rem',color:'var(--xp)'}}>Niveau {computed.level}</div>
+        <div style={{color:'var(--text2)',marginTop:8,fontSize:'1.1rem'}}>{title}</div>
+      </div>
+    </div>}
+
+    {/* HEADER */}
+    <div style={{padding:'16px 16px 0',animation:'fadeIn 0.5s'}}>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+        <div style={{
+          width:48,height:48,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
+          background:'linear-gradient(135deg,var(--gold)20,var(--int)20)',
+          border:'2px solid var(--gold)',fontSize:'1.4rem',flexShrink:0
+        }}>⚔️</div>
+        <div style={{flex:1}}>
+          <div style={{display:'flex',alignItems:'baseline',gap:8}}>
+            <span style={{fontFamily:"'Cinzel'",fontSize:'1.2rem',fontWeight:700,color:'var(--gold)'}}>{state.playerName}</span>
+            <span style={{fontSize:'0.75rem',color:'var(--text2)'}}>Nv.{computed.level}</span>
+          </div>
+          <div style={{fontSize:'0.75rem',color:'var(--int)',fontStyle:'italic'}}>{title}</div>
+          <Bar value={computed.currentLevelXP} max={computed.nextLevelXP} color="var(--xp)" height={6} animated />
+          <div style={{fontSize:'0.65rem',color:'var(--text2)',marginTop:2}}>{computed.currentLevelXP}/{computed.nextLevelXP} XP</div>
+        </div>
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:'0.6rem',color:'var(--text2)',textTransform:'uppercase',letterSpacing:1}}>Streak</div>
+          <div style={{fontFamily:"'Press Start 2P'",fontSize:'1.1rem',color:computed.currentStreak>0?'var(--str)':'var(--text2)'}}>
+            {computed.currentStreak}🔥
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- SCREEN 2: DASHBOARD -->
-    <div id="game-screen" class="screen hidden">
-        <div class="stats-container">
-            <div style="display: flex; justify-content: space-between;">
-                <span id="lvl-display">Niveau 1</span>
-                <span id="xp-display">0/100 XP</span>
-            </div>
-            <div class="progress-bar-bg">
-                <div id="progress-fill"></div>
-            </div>
+    {/* CONTENT */}
+    <div style={{padding:'0 16px'}}>
+      
+      {/* ── DAILY VIEW ── */}
+      {view === 'daily' && <div style={{animation:'fadeIn 0.4s'}}>
+        {/* Today score */}
+        <div style={{
+          textAlign:'center',padding:16,marginBottom:16,borderRadius:14,
+          background:`linear-gradient(135deg, var(--bg2), var(--bg3))`,
+          border:'1px solid var(--border)'
+        }}>
+          <div style={{fontSize:'2.5rem',fontFamily:"'Cinzel'",fontWeight:900,
+            color: todayScore >= 80 ? 'var(--success)' : todayScore >= 50 ? 'var(--gold)' : todayScore > 0 ? 'var(--str)' : 'var(--text2)'
+          }}>{todayScore}%</div>
+          <div style={{fontSize:'0.8rem',color:'var(--text2)'}}>{todayDone}/{activeObjs.length} quêtes · {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
+          <div style={{marginTop:8}}>
+            <Bar value={todayDone} max={activeObjs.length || 1} color="var(--gold)" height={8} animated />
+          </div>
         </div>
 
-        <div id="active-tasks">
-            <!-- Les tâches apparaîtront ici -->
+        {/* Objectives */}
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {STAT_CATEGORIES.map(cat => {
+            const catObjs = activeObjs.filter(o=>o.cat===cat.id);
+            if (catObjs.length === 0) return null;
+            return <div key={cat.id}>
+              <div style={{fontSize:'0.7rem',color:cat.color,textTransform:'uppercase',letterSpacing:2,marginBottom:4,marginTop:8}}>
+                {cat.icon} {cat.name}
+              </div>
+              {catObjs.map((o,i) => {
+                const done = todayLog[o.id];
+                return <div key={o.id} onClick={()=>toggleObjective(o.id)} style={{
+                  display:'flex',alignItems:'center',gap:10,padding:'12px 14px',
+                  background: done ? cat.color+'12' : 'var(--bg2)',
+                  border:`1px solid ${done ? cat.color+'30' : 'rgba(255,255,255,0.05)'}`,
+                  borderRadius:10,cursor:'pointer',transition:'all 0.3s',
+                  animation:`slideIn 0.3s ease-out ${i*0.05}s both`,
+                  opacity: done ? 0.85 : 1,
+                }}>
+                  <div style={{
+                    width:24,height:24,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',
+                    border:`2px solid ${done ? cat.color : 'rgba(255,255,255,0.15)'}`,
+                    background: done ? cat.color : 'transparent',
+                    transition:'all 0.3s',fontSize:'0.8rem',color:'var(--bg)'
+                  }}>{done ? '✓' : ''}</div>
+                  <span style={{flex:1,fontSize:'0.95rem',textDecoration:done?'line-through':'none',
+                    color:done?'var(--text2)':'var(--text)'}}>{o.name}</span>
+                  <span style={{fontSize:'0.65rem',color:diffColors[o.diff-1],opacity:0.7}}>+{o.diff*10}xp</span>
+                </div>;
+              })}
+            </div>;
+          })}
         </div>
+
+        {todayScore === 100 && <div style={{
+          textAlign:'center',padding:20,marginTop:16,borderRadius:14,
+          background:'linear-gradient(135deg,var(--gold)10,var(--success)10)',
+          border:'1px solid var(--gold)30'
+        }}>
+          <div style={{fontSize:'2rem'}}>🏆</div>
+          <div style={{fontFamily:"'Cinzel'",color:'var(--gold)',fontSize:'1.1rem'}}>Journée Parfaite!</div>
+          <div style={{fontSize:'0.8rem',color:'var(--text2)'}}>Toutes les quêtes accomplies</div>
+        </div>}
+      </div>}
+
+      {/* ── STATS VIEW ── */}
+      {view === 'stats' && <div style={{animation:'fadeIn 0.4s'}}>
+        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12,fontSize:'1.1rem'}}>Statistiques</h3>
+        
+        {/* Stat cards */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:16}}>
+          {STAT_CATEGORIES.map(s => 
+            <StatCard key={s.id} stat={s} value={computed.statLevels[s.id]} />
+          )}
+        </div>
+
+        {/* Stat bars */}
+        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20,padding:14,background:'var(--bg2)',borderRadius:14,border:'1px solid var(--border)'}}>
+          {STAT_CATEGORIES.map(s => 
+            <Bar key={s.id} value={computed.statXP[s.id] || 0} max={computed.statLevels[s.id]*50} 
+              color={s.color} height={10} label={`${s.icon} ${s.name} Nv.${computed.statLevels[s.id]}`} animated />
+          )}
+        </div>
+
+        {/* General stats */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+          {[
+            {label:'XP Total',value:computed.totalXP,icon:'⚡',color:'var(--xp)'},
+            {label:'Jours joués',value:computed.daysPlayed,icon:'📅',color:'var(--int)'},
+            {label:'Streak actuel',value:computed.currentStreak+'🔥',icon:'',color:'var(--str)'},
+            {label:'Meilleur streak',value:computed.bestStreak,icon:'👑',color:'var(--gold)'},
+            {label:'Moy. semaine',value:computed.weekAvg+'%',icon:'📈',color:'var(--success)'},
+            {label:'Tendance',value:(computed.trend>=0?'+':'')+computed.trend+'%',icon:computed.trend>=0?'📈':'📉',color:computed.trend>=0?'var(--success)':'var(--fail)'},
+          ].map((s,i) => 
+            <div key={i} style={{padding:14,background:'var(--bg2)',borderRadius:12,border:'1px solid rgba(255,255,255,0.05)',
+              animation:`fadeIn 0.4s ease-out ${i*0.08}s both`}}>
+              <div style={{fontSize:'0.7rem',color:'var(--text2)',marginBottom:4}}>{s.icon} {s.label}</div>
+              <div style={{fontSize:'1.3rem',fontWeight:700,color:s.color,fontFamily:"'Cinzel'"}}>{s.value}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Weekly chart */}
+        <div style={{padding:14,background:'var(--bg2)',borderRadius:14,border:'1px solid var(--border)'}}>
+          <div style={{fontSize:'0.8rem',color:'var(--text2)',marginBottom:10}}>7 derniers jours</div>
+          <div style={{display:'flex',alignItems:'flex-end',gap:4,height:100}}>
+            {computed.dailyScores.slice(-7).map((d,i) => {
+              const h = Math.max(4, d.score);
+              const dayName = new Date(d.day).toLocaleDateString('fr-FR',{weekday:'short'}).slice(0,2);
+              const isToday = d.day === today;
+              return <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                <span style={{fontSize:'0.6rem',color: d.score >= 80 ? 'var(--success)' : d.score >= 50 ? 'var(--gold)' : 'var(--fail)'}}>
+                  {d.score}%
+                </span>
+                <div style={{
+                  width:'100%',height:h+'%',minHeight:4,borderRadius:4,
+                  background: d.score >= 80 ? 'var(--success)' : d.score >= 50 ? 'var(--gold)' : d.score > 0 ? 'var(--str)' : 'rgba(255,255,255,0.05)',
+                  animation:`barFill 0.6s ease-out ${i*0.1}s both`,
+                  boxShadow: isToday ? '0 0 10px var(--gold)40' : 'none',
+                }}/>
+                <span style={{fontSize:'0.6rem',color: isToday ? 'var(--gold)' : 'var(--text2)'}}>{dayName}</span>
+              </div>;
+            })}
+          </div>
+        </div>
+      </div>}
+
+      {/* ── HISTORY VIEW ── */}
+      {view === 'history' && <div style={{animation:'fadeIn 0.4s'}}>
+        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12,fontSize:'1.1rem'}}>Journal d'aventure</h3>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {computed.dailyScores.slice().reverse().slice(0,30).map((d,i) => {
+            const log = state.logs[d.day] || {};
+            return <div key={d.day} style={{
+              padding:12,background:'var(--bg2)',borderRadius:10,
+              border:`1px solid ${d.score>=80?'var(--success)20':d.score>=50?'var(--gold)20':'var(--fail)20'}`,
+              animation:`slideIn 0.3s ease-out ${i*0.03}s both`
+            }}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                <span style={{fontSize:'0.85rem',color:'var(--text)'}}>
+                  {new Date(d.day).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}
+                </span>
+                <span style={{fontSize:'0.85rem',fontWeight:700,fontFamily:"'Cinzel'",
+                  color:d.score>=80?'var(--success)':d.score>=50?'var(--gold)':'var(--fail)'}}>
+                  {d.score}%
+                </span>
+              </div>
+              <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                {activeObjs.map(o => {
+                  const cat = STAT_CATEGORIES.find(s=>s.id===o.cat);
+                  return <span key={o.id} style={{
+                    fontSize:'0.65rem',padding:'2px 6px',borderRadius:4,
+                    background: log[o.id] ? cat.color+'20' : 'rgba(255,255,255,0.03)',
+                    color: log[o.id] ? cat.color : 'var(--text2)',
+                    border:`1px solid ${log[o.id] ? cat.color+'30' : 'rgba(255,255,255,0.05)'}`,
+                    textDecoration: log[o.id] ? 'none' : 'line-through',
+                    opacity: log[o.id] ? 1 : 0.4,
+                  }}>{o.name}</span>;
+                })}
+              </div>
+            </div>;
+          })}
+          {computed.dailyScores.length === 0 && <p style={{textAlign:'center',color:'var(--text2)',padding:40}}>
+            Aucune entrée pour l'instant. Commence par valider tes quêtes du jour !
+          </p>}
+        </div>
+      </div>}
+
+      {/* ── SETTINGS VIEW ── */}
+      {view === 'settings' && <div style={{animation:'fadeIn 0.4s'}}>
+        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12,fontSize:'1.1rem'}}>Configuration</h3>
+        
+        {/* Objectives management */}
+        <div style={{marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:'0.85rem',color:'var(--text2)'}}>Quêtes actives</span>
+            <button onClick={()=>setShowAdd(!showAdd)} style={{
+              padding:'5px 12px',background:'var(--gold)15',border:'1px solid var(--gold)40',
+              borderRadius:8,color:'var(--gold)',fontSize:'0.8rem',cursor:'pointer'
+            }}>{showAdd ? 'Annuler' : '+ Ajouter'}</button>
+          </div>
+
+          {showAdd && <div style={{background:'var(--bg2)',borderRadius:10,padding:12,marginBottom:8,border:'1px solid var(--border)'}}>
+            <input value={addName} onChange={e=>setAddName(e.target.value)} placeholder="Nouvelle quête..."
+              onKeyDown={e=>e.key==='Enter'&&addObjective()}
+              style={{width:'100%',padding:'8px 12px',background:'var(--bg3)',border:'1px solid rgba(255,255,255,0.08)',
+                borderRadius:6,color:'var(--text)',fontSize:'0.9rem',fontFamily:"'Rajdhani'",outline:'none',marginBottom:8}}
+            />
+            <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
+              {STAT_CATEGORIES.map(s => 
+                <button key={s.id} onClick={()=>setAddCat(s.id)} style={{
+                  padding:'4px 8px',borderRadius:12,border:'1px solid',fontSize:'0.7rem',cursor:'pointer',
+                  background: addCat===s.id ? s.color+'20' : 'transparent',
+                  borderColor: addCat===s.id ? s.color : 'rgba(255,255,255,0.1)',
+                  color: addCat===s.id ? s.color : 'var(--text2)',
+                }}>{s.icon}</button>
+              )}
+            </div>
+            <button onClick={addObjective} style={{
+              width:'100%',padding:8,background:'var(--gold)20',border:'1px solid var(--gold)40',
+              borderRadius:6,color:'var(--gold)',cursor:'pointer',fontSize:'0.85rem'
+            }}>Confirmer</button>
+          </div>}
+
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            {state.objectives.map(o => {
+              const cat = STAT_CATEGORIES.find(s=>s.id===o.cat);
+              return <div key={o.id} style={{
+                display:'flex',alignItems:'center',gap:8,padding:'8px 12px',
+                background:'var(--bg2)',borderRadius:8,border:'1px solid rgba(255,255,255,0.05)',
+                opacity: o.active ? 1 : 0.4
+              }}>
+                <span>{cat?.icon}</span>
+                <span style={{flex:1,fontSize:'0.85rem'}}>{o.name}</span>
+                <button onClick={()=>toggleObjActive(o.id)} style={{
+                  padding:'3px 8px',background:'none',border:'1px solid rgba(255,255,255,0.1)',
+                  borderRadius:6,color:o.active?'var(--success)':'var(--text2)',cursor:'pointer',fontSize:'0.7rem'
+                }}>{o.active ? 'ON' : 'OFF'}</button>
+                <button onClick={()=>deleteObj(o.id)} style={{
+                  background:'none',border:'none',color:'var(--fail)',cursor:'pointer',fontSize:'1rem'
+                }}>×</button>
+              </div>;
+            })}
+          </div>
+        </div>
+
+        {/* Export/Reset */}
+        <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:24}}>
+          <button onClick={()=>{
+            const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+            const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+            a.download='lifequest_backup.json'; a.click();
+          }} style={{
+            padding:12,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,
+            color:'var(--xp)',cursor:'pointer',fontSize:'0.9rem',fontFamily:"'Rajdhani'"
+          }}>📦 Exporter les données (JSON)</button>
+          
+          <label style={{
+            padding:12,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,
+            color:'var(--success)',cursor:'pointer',fontSize:'0.9rem',fontFamily:"'Rajdhani'",textAlign:'center'
+          }}>📥 Importer une sauvegarde
+            <input type="file" accept=".json" style={{display:'none'}} onChange={e=>{
+              const f = e.target.files[0]; if(!f) return;
+              const r = new FileReader();
+              r.onload = ev => {
+                try { const d = JSON.parse(ev.target.result); setState(d); saveState(d); alert('Import réussi!'); }
+                catch { alert('Fichier invalide'); }
+              };
+              r.readAsText(f);
+            }}/>
+          </label>
+
+          <button onClick={resetAll} style={{
+            padding:12,background:'var(--fail)10',border:'1px solid var(--fail)30',borderRadius:10,
+            color:'var(--fail)',cursor:'pointer',fontSize:'0.9rem',fontFamily:"'Rajdhani'"
+          }}>🗑️ Réinitialiser tout</button>
+        </div>
+      </div>}
     </div>
 
-    <script>
-        let selectedGoals = [];
-        let xp = 0;
-        let level = 1;
-        let xpNextLevel = 100;
+    {/* BOTTOM NAV */}
+    <div style={{
+      position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:500,
+      display:'flex',background:'var(--bg2)',borderTop:'1px solid var(--border)',
+      padding:'8px 0',paddingBottom:'max(8px, env(safe-area-inset-bottom))',zIndex:100,
+      backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'
+    }}>
+      {navItems.map(n => 
+        <button key={n.id} onClick={()=>setView(n.id)} style={{
+          flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,
+          background:'none',border:'none',cursor:'pointer',padding:'4px 0',
+          color: view===n.id ? 'var(--gold)' : 'var(--text2)',
+          transition:'color 0.2s'
+        }}>
+          <span style={{fontSize:'1.2rem'}}>{n.icon}</span>
+          <span style={{fontSize:'0.6rem',letterSpacing:1,textTransform:'uppercase'}}>{n.label}</span>
+        </button>
+      )}
+    </div>
+  </div>;
+}
 
-        function toggleGoal(el, goal) {
-            el.classList.toggle('selected');
-            if (selectedGoals.includes(goal)) {
-                selectedGoals = selectedGoals.filter(g => g !== goal);
-            } else {
-                selectedGoals.push(goal);
-            }
-        }
+// ─── APP ROOT ───
+function App() {
+  const [state, setState] = useState(loadState);
+  const hasSetup = state.objectives.length > 0;
 
-        function startGame() {
-            if (selectedGoals.length === 0) {
-                alert("Choisis au moins un objectif !");
-                return;
-            }
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            renderTasks();
-        }
+  const handleSetupComplete = (data) => {
+    const newState = { ...DEFAULT_STATE, ...data, createdAt: todayStr() };
+    setState(newState);
+    saveState(newState);
+  };
 
-        function renderTasks() {
-            const container = document.getElementById('active-tasks');
-            container.innerHTML = '';
-            selectedGoals.forEach((goal, index) => {
-                const div = document.createElement('div');
-                div.className = 'task-item';
-                div.innerHTML = `<span>${goal}</span> <span>+25 XP</span>`;
-                div.onclick = () => completeTask(div, 25);
-                container.appendChild(div);
-            });
-        }
+  if (!hasSetup) return <SetupPage onComplete={handleSetupComplete} />;
+  return <Dashboard state={state} setState={setState} />;
+}
 
-        function completeTask(element, amount) {
-            if (element.classList.contains('completed')) return;
-
-            element.classList.add('completed');
-            addXP(amount);
-        }
-
-        function addXP(amount) {
-            xp += amount;
-            
-            if (xp >= xpNextLevel) {
-                levelUp();
-            }
-
-            updateUI();
-        }
-
-        function levelUp() {
-            level++;
-            xp = xp - xpNextLevel;
-            xpNextLevel = Math.round(xpNextLevel * 1.2); // Le niveau suivant est plus dur
-            
-            const popup = document.getElementById('level-up-popup');
-            popup.style.display = 'block';
-            setTimeout(() => { popup.style.display = 'none'; }, 2000);
-        }
-
-        function updateUI() {
-            document.getElementById('lvl-display').innerText = `Niveau ${level}`;
-            document.getElementById('xp-display').innerText = `${xp}/${xpNextLevel} XP`;
-            const progressPercent = (xp / xpNextLevel) * 100;
-            document.getElementById('progress-fill').style.width = progressPercent + '%';
-        }
-    </script>
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
 </body>
 </html>
