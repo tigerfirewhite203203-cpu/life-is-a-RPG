@@ -2,451 +2,489 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a12">
 <title>LifeQuest RPG</title>
+<link rel="manifest" id="manifest-link">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-user-select:none; user-select:none; }
+input, textarea { -webkit-user-select:text; user-select:text; }
 :root {
-  --bg: #0a0a12;
-  --bg2: #12121f;
-  --bg3: #1a1a2e;
-  --gold: #f0c040;
-  --gold-dim: #a08020;
-  --xp: #00e5ff;
-  --hp: #ff4060;
-  --str: #ff6b35;
-  --int: #7b68ee;
-  --dex: #00e676;
-  --cha: #ff69b4;
-  --wis: #ffd700;
-  --end: #20b2aa;
-  --text: #e0e0e8;
-  --text2: #8888a0;
-  --success: #00e676;
-  --fail: #ff4060;
+  --bg: #0a0a12; --bg2: #12121f; --bg3: #1a1a2e;
+  --gold: #f0c040; --gold-dim: #a08020;
+  --xp: #00e5ff; --hp: #ff4060;
+  --str: #ff6b35; --int: #7b68ee; --dex: #00e676;
+  --cha: #ff69b4; --wis: #ffd700; --end: #20b2aa;
+  --text: #e0e0e8; --text2: #8888a0;
+  --success: #00e676; --fail: #ff4060;
   --border: rgba(240,192,64,0.15);
-  --glow: 0 0 20px rgba(240,192,64,0.3);
 }
-html, body { 
-  height:100%; 
-  background: var(--bg); 
-  color: var(--text); 
-  font-family: 'Rajdhani', sans-serif;
-  overflow-x: hidden;
+html {
+  height:100%; touch-action:manipulation;
+  overflow-y:scroll; overscroll-behavior-y:none;
+}
+body { 
+  height:100%; background:var(--bg); color:var(--text);
+  font-family:'Rajdhani',sans-serif; overflow-x:hidden;
+  -webkit-text-size-adjust:100%; touch-action:pan-y;
+  overscroll-behavior:none;
 }
 body::before {
-  content:'';
-  position:fixed;
-  inset:0;
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
   background: 
     radial-gradient(ellipse at 20% 50%, rgba(123,104,238,0.06) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 20%, rgba(0,229,255,0.04) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 80%, rgba(240,192,64,0.03) 0%, transparent 50%);
-  pointer-events:none;
-  z-index:0;
 }
 #root { position:relative; z-index:1; min-height:100vh; }
-
-/* Scrollbar */
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-track { background:var(--bg); }
 ::-webkit-scrollbar-thumb { background:var(--gold-dim); border-radius:2px; }
 
-/* Animations */
 @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-@keyframes levelUp { 
-  0%{transform:scale(1);filter:brightness(1)} 
-  50%{transform:scale(1.15);filter:brightness(1.8)} 
-  100%{transform:scale(1);filter:brightness(1)} 
-}
-@keyframes xpGain {
-  0%{opacity:1;transform:translateY(0)} 
-  100%{opacity:0;transform:translateY(-40px)} 
-}
+@keyframes levelUp { 0%{transform:scale(1);filter:brightness(1)} 50%{transform:scale(1.15);filter:brightness(1.8)} 100%{transform:scale(1);filter:brightness(1)} }
+@keyframes xpGain { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-40px)} }
 @keyframes slideIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
 @keyframes barFill { from{width:0} }
+@keyframes streakPulse { 0%,100%{text-shadow:0 0 10px var(--str)} 50%{text-shadow:0 0 30px var(--str), 0 0 60px var(--gold)} }
 </style>
 </head>
 <body>
 <div id="root"></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+<script>
+// ─── ANTI-ZOOM MOBILE ───
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+document.addEventListener('gestureend', e => e.preventDefault());
+document.addEventListener('touchmove', e => {
+  if (e.scale !== undefined && e.scale !== 1) e.preventDefault();
+}, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) e.preventDefault();
+  lastTouchEnd = now;
+}, false);
+document.addEventListener('dblclick', e => e.preventDefault());
+
+// ─── SERVICE WORKER & NOTIFICATIONS ───
+const SW_CODE = `
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow('/'));
+});
+`;
+
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+    const swURL = URL.createObjectURL(blob);
+    const reg = await navigator.serviceWorker.register(swURL);
+    return reg;
+  } catch(e) { console.log('SW failed', e); return null; }
+}
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return 'unsupported';
+  if (Notification.permission === 'granted') return 'granted';
+  if (Notification.permission === 'denied') return 'denied';
+  return await Notification.requestPermission();
+}
+
+function scheduleLocalNotif(title, body, delayMs) {
+  if (Notification.permission !== 'granted') return;
+  setTimeout(() => {
+    try { new Notification(title, { body, icon:'⚔️', tag:'lifequest-'+Date.now(), vibrate:[200,100,200] }); }
+    catch(e) { navigator.serviceWorker?.ready?.then(reg => reg.showNotification(title, { body, tag:'lifequest', vibrate:[200,100,200] })); }
+  }, delayMs);
+}
+
+// ─── PWA MANIFEST ───
+const manifest = {
+  name: "LifeQuest RPG", short_name: "LifeQuest", start_url: ".", display: "standalone",
+  background_color: "#0a0a12", theme_color: "#0a0a12", orientation: "portrait",
+  icons: [{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>", sizes: "any", type: "image/svg+xml" }]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+registerSW();
+</script>
+
 <script type="text/babel">
-const { useState, useEffect, useMemo, useCallback, useRef } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 
-// ─── DATA & HELPERS ───
 const STAT_CATEGORIES = [
-  { id:'str', name:'Force', icon:'⚔️', color:'var(--str)', desc:'Sport, physique, endurance' },
-  { id:'int', name:'Intelligence', icon:'📚', color:'var(--int)', desc:'Études, lecture, apprentissage' },
-  { id:'dex', name:'Discipline', icon:'🎯', color:'var(--dex)', desc:'Habitudes, routine, régularité' },
-  { id:'cha', name:'Social', icon:'💬', color:'var(--cha)', desc:'Relations, communication' },
-  { id:'wis', name:'Sagesse', icon:'🧘', color:'var(--wis)', desc:'Méditation, réflexion, santé mentale' },
-  { id:'end', name:'Vitalité', icon:'💚', color:'var(--end)', desc:'Sommeil, nutrition, hydratation' },
+  { id:'str', name:'Force', icon:'⚔️', color:'var(--str)' },
+  { id:'int', name:'Intelligence', icon:'📚', color:'var(--int)' },
+  { id:'dex', name:'Discipline', icon:'🎯', color:'var(--dex)' },
+  { id:'cha', name:'Social', icon:'💬', color:'var(--cha)' },
+  { id:'wis', name:'Sagesse', icon:'🧘', color:'var(--wis)' },
+  { id:'end', name:'Vitalité', icon:'💚', color:'var(--end)' },
 ];
-
+const DAYS_OF_WEEK = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const SCHEDULE_TYPES = [
+  { id:'daily', label:'Tous les jours', icon:'📅' },
+  { id:'weekdays', label:'Lun-Ven', icon:'💼' },
+  { id:'weekend', label:'Sam-Dim', icon:'🌴' },
+  { id:'custom', label:'Jours précis', icon:'🎯' },
+  { id:'weekly', label:'1x/semaine', icon:'📌' },
+];
 const TITLES = [
   {lvl:1,t:'Vagabond'},{lvl:5,t:'Apprenti'},{lvl:10,t:'Aventurier'},{lvl:15,t:'Guerrier'},
   {lvl:20,t:'Champion'},{lvl:25,t:'Héros'},{lvl:30,t:'Légende'},{lvl:40,t:'Mythique'},
   {lvl:50,t:'Divin'},{lvl:75,t:'Transcendant'},{lvl:100,t:'Immortel'}
 ];
+const DIFF_LABELS = ['Facile','Normal','Difficile','Épique','Légendaire'];
+const DIFF_COLORS = ['var(--success)','var(--xp)','var(--str)','var(--int)','var(--gold)'];
 
 const xpForLevel = (lvl) => Math.floor(100 * Math.pow(1.15, lvl - 1));
 const getTitle = (lvl) => [...TITLES].reverse().find(t => lvl >= t.lvl)?.t || 'Novice';
 const todayStr = () => new Date().toISOString().slice(0,10);
-const daysBetween = (a,b) => Math.floor((new Date(b)-new Date(a))/(86400000));
+const getDOW = (ds) => { const d = new Date(ds).getDay(); return d === 0 ? 6 : d - 1; };
 
-const DEFAULT_STATE = {
-  playerName: '',
-  objectives: [],
-  logs: {},
-  createdAt: todayStr(),
-};
-
-const loadState = () => {
-  try { return JSON.parse(localStorage.getItem('lifequest_v2')) || DEFAULT_STATE; }
-  catch { return DEFAULT_STATE; }
-};
-const saveState = (s) => localStorage.setItem('lifequest_v2', JSON.stringify(s));
-
-// ─── COMPONENTS ───
-
-// XP Float animation
-function XPFloat({ amount, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 1000); return ()=>clearTimeout(t); }, []);
-  return <span style={{
-    position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
-    color:'var(--xp)', fontSize:'2rem', fontFamily:"'Press Start 2P'", pointerEvents:'none',
-    animation:'xpGain 1s ease-out forwards', zIndex:9999, textShadow:'0 0 20px var(--xp)'
-  }}>+{amount} XP</span>;
+function isObjActiveOn(obj, dateStr) {
+  const s = obj.schedule || 'daily', dow = getDOW(dateStr);
+  if (s === 'daily') return true;
+  if (s === 'weekdays') return dow <= 4;
+  if (s === 'weekend') return dow >= 5;
+  if (s === 'custom') return (obj.customDays || []).includes(dow);
+  if (s === 'weekly') return (obj.weeklyDay ?? 0) === dow;
+  return true;
 }
 
-// Progress Bar
-function Bar({ value, max, color, height=8, animated=false, label }) {
+const STORAGE_KEY = 'lifequest_v3';
+const DEFAULT_STATE = { playerName:'', objectives:[], logs:{}, createdAt:todayStr(), notifEnabled:false };
+const load = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || DEFAULT_STATE; } catch { return DEFAULT_STATE; } };
+const save = (s) => localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+
+// ─── COMPONENTS ───
+function XPFloat({ amount, label, color, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 1200); return ()=>clearTimeout(t); }, []);
+  return <span style={{position:'fixed',top:label?'38%':'45%',left:'50%',transform:'translate(-50%,-50%)',
+    color:color||'var(--xp)',fontSize:label?'1rem':'1.8rem',fontFamily:"'Press Start 2P'",pointerEvents:'none',
+    animation:'xpGain 1.2s ease-out forwards',zIndex:9999,textShadow:`0 0 20px ${color||'var(--xp)'}`
+  }}>{label||''}{label?' ':''}+{amount} XP</span>;
+}
+
+function Bar({ value, max, color, height=8, label }) {
   const pct = Math.min(100, (value/max)*100);
-  return <div style={{position:'relative',width:'100%'}}>
+  return <div>
     {label && <div style={{display:'flex',justifyContent:'space-between',marginBottom:3,fontSize:'0.75rem',color:'var(--text2)'}}>
       <span>{label}</span><span>{value}/{max}</span>
     </div>}
     <div style={{width:'100%',height,background:'rgba(255,255,255,0.06)',borderRadius:height/2,overflow:'hidden'}}>
-      <div style={{
-        width:pct+'%', height:'100%', borderRadius:height/2,
-        background:`linear-gradient(90deg, ${color}, ${color}dd)`,
-        boxShadow:`0 0 10px ${color}40`,
-        animation: animated ? 'barFill 0.8s ease-out' : 'none',
-        transition:'width 0.5s ease'
-      }}/>
+      <div style={{width:pct+'%',height:'100%',borderRadius:height/2,
+        background:`linear-gradient(90deg, ${color}, ${color}dd)`,boxShadow:`0 0 10px ${color}40`,
+        animation:'barFill 0.8s ease-out',transition:'width 0.5s ease'}}/>
     </div>
   </div>;
 }
 
-// Stat Hexagon
-function StatCard({ stat, value, onClick }) {
-  return <div onClick={onClick} style={{
-    display:'flex', flexDirection:'column', alignItems:'center', gap:4, cursor:'pointer',
-    padding:'12px 8px', borderRadius:12, background:'rgba(255,255,255,0.03)',
-    border:'1px solid rgba(255,255,255,0.05)', transition:'all 0.3s',
-    minWidth:80, flex:1,
-  }}
-  onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.borderColor=stat.color+'40'}}
-  onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.03)';e.currentTarget.style.borderColor='rgba(255,255,255,0.05)'}}
-  >
-    <span style={{fontSize:'1.5rem'}}>{stat.icon}</span>
-    <span style={{fontSize:'0.65rem',color:'var(--text2)',textTransform:'uppercase',letterSpacing:1}}>{stat.name}</span>
-    <span style={{fontSize:'1.4rem',fontWeight:700,color:stat.color,fontFamily:"'Cinzel'"}}>{value}</span>
-  </div>;
-}
-
-// ─── PAGES ───
-
-// SETUP PAGE
+// ─── SETUP ───
 function SetupPage({ onComplete }) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [objectives, setObjectives] = useState([]);
-  const [newObj, setNewObj] = useState('');
-  const [newCat, setNewCat] = useState('str');
-  const [newDiff, setNewDiff] = useState(2);
+  const [f, setF] = useState({ name:'', cat:'str', diff:2, schedule:'daily', customDays:[], weeklyDay:0, reminder:'08:00' });
+
+  const updateF = (k,v) => setF(p=>({...p,[k]:v}));
+  const toggleDay = (d) => setF(p=>({...p, customDays: p.customDays.includes(d) ? p.customDays.filter(x=>x!==d) : [...p.customDays, d]}));
 
   const addObj = () => {
-    if (!newObj.trim()) return;
-    setObjectives(p=>[...p, { id: Date.now(), name:newObj.trim(), cat:newCat, diff:newDiff, active:true }]);
-    setNewObj('');
+    if (!f.name.trim()) return;
+    setObjectives(p=>[...p, { id:Date.now(), name:f.name.trim(), cat:f.cat, diff:f.diff, active:true,
+      schedule:f.schedule, customDays:f.schedule==='custom'?[...f.customDays]:[], weeklyDay:f.schedule==='weekly'?f.weeklyDay:0, reminderTime:f.reminder }]);
+    updateF('name','');
   };
 
-  const removeObj = (id) => setObjectives(p=>p.filter(o=>o.id!==id));
-
-  const finish = () => {
-    if (objectives.length === 0) return;
-    onComplete({ playerName: name || 'Héros', objectives });
-  };
-
-  const diffLabels = ['Facile','Normal','Difficile','Épique','Légendaire'];
-  const diffColors = ['var(--success)','var(--xp)','var(--str)','var(--int)','var(--gold)'];
+  const finish = () => { if (objectives.length>0) onComplete({ playerName:name||'Héros', objectives }); };
 
   return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-    <div style={{maxWidth:500,width:'100%',animation:'fadeIn 0.6s ease-out'}}>
-      
+    <div style={{maxWidth:500,width:'100%',animation:'fadeIn 0.6s'}}>
       {step === 0 && <div style={{textAlign:'center'}}>
         <div style={{fontSize:'3rem',marginBottom:8}}>⚔️</div>
         <h1 style={{fontFamily:"'Cinzel'",fontSize:'2rem',color:'var(--gold)',marginBottom:8}}>LifeQuest</h1>
-        <p style={{color:'var(--text2)',marginBottom:32,fontSize:'1.1rem'}}>Transforme ta vie en RPG</p>
+        <p style={{color:'var(--text2)',marginBottom:32}}>Transforme ta vie en RPG</p>
         <input value={name} onChange={e=>setName(e.target.value)} placeholder="Ton nom de héros..."
-          style={{
-            width:'100%',padding:'14px 20px',background:'var(--bg2)',border:'1px solid var(--border)',
-            borderRadius:12,color:'var(--text)',fontSize:'1.1rem',fontFamily:"'Rajdhani'",
-            outline:'none',textAlign:'center',marginBottom:20
-          }}
-          onFocus={e=>e.target.style.borderColor='var(--gold)'}
-          onBlur={e=>e.target.style.borderColor='var(--border)'}
+          style={{width:'100%',padding:'14px 20px',background:'var(--bg2)',border:'1px solid var(--border)',
+            borderRadius:12,color:'var(--text)',fontSize:'1.1rem',fontFamily:"'Rajdhani'",outline:'none',textAlign:'center',marginBottom:20}}
         />
-        <button onClick={()=>setStep(1)} style={{
-          width:'100%',padding:'14px',background:'linear-gradient(135deg,var(--gold),var(--gold-dim))',
-          border:'none',borderRadius:12,color:'var(--bg)',fontSize:'1.1rem',fontWeight:700,
-          fontFamily:"'Cinzel'",cursor:'pointer',letterSpacing:1
-        }}>Commencer l'aventure</button>
+        <button onClick={()=>setStep(1)} style={{width:'100%',padding:'14px',
+          background:'linear-gradient(135deg,var(--gold),var(--gold-dim))',border:'none',borderRadius:12,
+          color:'var(--bg)',fontSize:'1.1rem',fontWeight:700,fontFamily:"'Cinzel'",cursor:'pointer'}}>
+          Commencer l'aventure
+        </button>
       </div>}
 
       {step === 1 && <div>
-        <h2 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:4,fontSize:'1.3rem'}}>
-          Définis tes quêtes quotidiennes
-        </h2>
-        <p style={{color:'var(--text2)',marginBottom:20,fontSize:'0.9rem'}}>
-          Ajoute les objectifs que tu veux tracker chaque jour
-        </p>
+        <h2 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:4,fontSize:'1.3rem'}}>Définis tes quêtes</h2>
+        <p style={{color:'var(--text2)',marginBottom:14,fontSize:'0.85rem'}}>Objectif + fréquence + heure de rappel</p>
 
-        {/* Add form */}
-        <div style={{background:'var(--bg2)',borderRadius:12,padding:16,marginBottom:16,border:'1px solid var(--border)'}}>
-          <input value={newObj} onChange={e=>setNewObj(e.target.value)} placeholder="Ex: 30min de sport, lire 20 pages..."
+        <div style={{background:'var(--bg2)',borderRadius:12,padding:14,marginBottom:14,border:'1px solid var(--border)'}}>
+          <input value={f.name} onChange={e=>updateF('name',e.target.value)} placeholder="Ex: 30min sport, lire 20 pages..."
             onKeyDown={e=>e.key==='Enter'&&addObj()}
             style={{width:'100%',padding:'10px 14px',background:'var(--bg3)',border:'1px solid rgba(255,255,255,0.08)',
-              borderRadius:8,color:'var(--text)',fontSize:'1rem',fontFamily:"'Rajdhani'",outline:'none',marginBottom:12}}
-          />
+              borderRadius:8,color:'var(--text)',fontSize:'1rem',fontFamily:"'Rajdhani'",outline:'none',marginBottom:10}} />
           
-          {/* Category select */}
-          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
-            {STAT_CATEGORIES.map(s => 
-              <button key={s.id} onClick={()=>setNewCat(s.id)} style={{
-                padding:'6px 12px',borderRadius:20,border:'1px solid',fontSize:'0.8rem',cursor:'pointer',
-                background: newCat===s.id ? s.color+'20' : 'transparent',
-                borderColor: newCat===s.id ? s.color : 'rgba(255,255,255,0.1)',
-                color: newCat===s.id ? s.color : 'var(--text2)',
-              }}>{s.icon} {s.name}</button>
+          {/* Catégorie */}
+          <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:10}}>
+            {STAT_CATEGORIES.map(s=>
+              <button key={s.id} onClick={()=>updateF('cat',s.id)} style={{padding:'5px 10px',borderRadius:16,border:'1px solid',fontSize:'0.75rem',cursor:'pointer',
+                background:f.cat===s.id?s.color+'20':'transparent',borderColor:f.cat===s.id?s.color:'rgba(255,255,255,0.1)',color:f.cat===s.id?s.color:'var(--text2)'}}>{s.icon} {s.name}</button>
             )}
           </div>
 
-          {/* Difficulty */}
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-            <span style={{fontSize:'0.8rem',color:'var(--text2)',minWidth:55}}>Difficulté:</span>
-            <div style={{display:'flex',gap:4,flex:1}}>
-              {diffLabels.map((d,i) => 
-                <button key={i} onClick={()=>setNewDiff(i+1)} style={{
-                  flex:1,padding:'5px 2px',borderRadius:6,border:'1px solid',fontSize:'0.7rem',cursor:'pointer',
-                  background: newDiff===i+1 ? diffColors[i]+'20' : 'transparent',
-                  borderColor: newDiff===i+1 ? diffColors[i] : 'rgba(255,255,255,0.08)',
-                  color: newDiff===i+1 ? diffColors[i] : 'var(--text2)',
-                }}>{d}</button>
+          {/* Difficulté */}
+          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+            <span style={{fontSize:'0.75rem',color:'var(--text2)',minWidth:50}}>Difficulté</span>
+            <div style={{display:'flex',gap:3,flex:1}}>
+              {DIFF_LABELS.map((d,i)=>
+                <button key={i} onClick={()=>updateF('diff',i+1)} style={{flex:1,padding:'4px 2px',borderRadius:6,border:'1px solid',fontSize:'0.65rem',cursor:'pointer',
+                  background:f.diff===i+1?DIFF_COLORS[i]+'20':'transparent',borderColor:f.diff===i+1?DIFF_COLORS[i]:'rgba(255,255,255,0.08)',color:f.diff===i+1?DIFF_COLORS[i]:'var(--text2)'}}>{d}</button>
               )}
             </div>
           </div>
 
-          <button onClick={addObj} style={{
-            width:'100%',padding:'10px',background:'var(--bg3)',border:'1px solid var(--border)',
-            borderRadius:8,color:'var(--gold)',fontSize:'0.95rem',cursor:'pointer',fontFamily:"'Rajdhani'",fontWeight:600
-          }}>+ Ajouter cette quête</button>
+          {/* Fréquence */}
+          <div style={{marginBottom:10}}>
+            <span style={{fontSize:'0.75rem',color:'var(--text2)',display:'block',marginBottom:4}}>📅 Fréquence</span>
+            <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
+              {SCHEDULE_TYPES.map(s=>
+                <button key={s.id} onClick={()=>updateF('schedule',s.id)} style={{padding:'5px 8px',borderRadius:8,border:'1px solid',fontSize:'0.7rem',cursor:'pointer',
+                  background:f.schedule===s.id?'var(--xp)20':'transparent',borderColor:f.schedule===s.id?'var(--xp)':'rgba(255,255,255,0.08)',color:f.schedule===s.id?'var(--xp)':'var(--text2)'}}>{s.icon} {s.label}</button>
+              )}
+            </div>
+          </div>
+
+          {f.schedule==='custom' && <div style={{display:'flex',gap:4,marginBottom:10}}>
+            {DAYS_OF_WEEK.map((d,i)=>
+              <button key={i} onClick={()=>toggleDay(i)} style={{flex:1,padding:'6px 2px',borderRadius:6,border:'1px solid',fontSize:'0.7rem',cursor:'pointer',
+                background:f.customDays.includes(i)?'var(--dex)20':'transparent',borderColor:f.customDays.includes(i)?'var(--dex)':'rgba(255,255,255,0.08)',color:f.customDays.includes(i)?'var(--dex)':'var(--text2)'}}>{d}</button>
+            )}
+          </div>}
+
+          {f.schedule==='weekly' && <div style={{marginBottom:10}}>
+            <span style={{fontSize:'0.7rem',color:'var(--text2)',marginBottom:4,display:'block'}}>Quel jour ?</span>
+            <div style={{display:'flex',gap:4}}>
+              {DAYS_OF_WEEK.map((d,i)=>
+                <button key={i} onClick={()=>updateF('weeklyDay',i)} style={{flex:1,padding:'6px 2px',borderRadius:6,border:'1px solid',fontSize:'0.7rem',cursor:'pointer',
+                  background:f.weeklyDay===i?'var(--int)20':'transparent',borderColor:f.weeklyDay===i?'var(--int)':'rgba(255,255,255,0.08)',color:f.weeklyDay===i?'var(--int)':'var(--text2)'}}>{d}</button>
+              )}
+            </div>
+          </div>}
+
+          {/* Heure rappel */}
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+            <span style={{fontSize:'0.75rem',color:'var(--text2)'}}>⏰ Rappel</span>
+            <input type="time" value={f.reminder} onChange={e=>updateF('reminder',e.target.value)}
+              style={{padding:'4px 8px',background:'var(--bg3)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:6,color:'var(--text)',fontSize:'0.85rem',fontFamily:"'Rajdhani'",outline:'none'}} />
+          </div>
+
+          <button onClick={addObj} style={{width:'100%',padding:'10px',background:'var(--bg3)',border:'1px solid var(--border)',
+            borderRadius:8,color:'var(--gold)',fontSize:'0.95rem',cursor:'pointer',fontFamily:"'Rajdhani'",fontWeight:600}}>+ Ajouter cette quête</button>
         </div>
 
-        {/* Objectives list */}
-        <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:20,maxHeight:300,overflowY:'auto',paddingRight:4}}>
+        {/* Liste */}
+        <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:16,maxHeight:260,overflowY:'auto'}}>
           {objectives.map((o,i) => {
             const cat = STAT_CATEGORIES.find(s=>s.id===o.cat);
-            return <div key={o.id} style={{
-              display:'flex',alignItems:'center',gap:10,padding:'10px 14px',
-              background:'var(--bg2)',borderRadius:10,border:'1px solid rgba(255,255,255,0.05)',
-              animation:`slideIn 0.3s ease-out ${i*0.05}s both`
-            }}>
+            const sl = SCHEDULE_TYPES.find(s=>s.id===o.schedule)?.label||'';
+            return <div key={o.id} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',
+              background:'var(--bg2)',borderRadius:10,border:'1px solid rgba(255,255,255,0.05)',animation:`slideIn 0.3s ease-out ${i*0.05}s both`}}>
               <span>{cat?.icon}</span>
-              <span style={{flex:1,fontSize:'0.95rem'}}>{o.name}</span>
-              <span style={{fontSize:'0.7rem',color:diffColors[o.diff-1],padding:'2px 8px',
-                background:diffColors[o.diff-1]+'15',borderRadius:10}}>{diffLabels[o.diff-1]}</span>
-              <button onClick={()=>removeObj(o.id)} style={{background:'none',border:'none',color:'var(--fail)',cursor:'pointer',fontSize:'1.1rem'}}>×</button>
+              <div style={{flex:1}}><div style={{fontSize:'0.9rem'}}>{o.name}</div>
+                <div style={{fontSize:'0.6rem',color:'var(--text2)'}}>{sl} · {o.reminderTime}</div></div>
+              <span style={{fontSize:'0.65rem',color:DIFF_COLORS[o.diff-1],padding:'2px 6px',background:DIFF_COLORS[o.diff-1]+'15',borderRadius:8}}>{DIFF_LABELS[o.diff-1]}</span>
+              <button onClick={()=>setObjectives(p=>p.filter(x=>x.id!==o.id))} style={{background:'none',border:'none',color:'var(--fail)',cursor:'pointer',fontSize:'1.1rem'}}>×</button>
             </div>;
           })}
         </div>
 
-        {objectives.length > 0 && <button onClick={finish} style={{
-          width:'100%',padding:'14px',background:'linear-gradient(135deg,var(--gold),var(--gold-dim))',
-          border:'none',borderRadius:12,color:'var(--bg)',fontSize:'1.1rem',fontWeight:700,
-          fontFamily:"'Cinzel'",cursor:'pointer',letterSpacing:1
-        }}>Lancer la quête ({objectives.length} objectifs)</button>}
-        
-        {objectives.length === 0 && <p style={{textAlign:'center',color:'var(--text2)',fontSize:'0.85rem'}}>
-          Ajoute au moins 1 objectif pour continuer
-        </p>}
+        {objectives.length > 0 ? <button onClick={finish} style={{width:'100%',padding:'14px',
+          background:'linear-gradient(135deg,var(--gold),var(--gold-dim))',border:'none',borderRadius:12,
+          color:'var(--bg)',fontSize:'1.1rem',fontWeight:700,fontFamily:"'Cinzel'",cursor:'pointer'}}>
+          Lancer ({objectives.length} objectifs)
+        </button> : <p style={{textAlign:'center',color:'var(--text2)',fontSize:'0.85rem'}}>Ajoute au moins 1 objectif</p>}
       </div>}
     </div>
   </div>;
 }
 
-// MAIN DASHBOARD
+// ─── DASHBOARD ───
 function Dashboard({ state, setState }) {
-  const [view, setView] = useState('daily'); // daily, stats, history, settings
-  const [xpFloats, setXpFloats] = useState([]);
+  const [view, setView] = useState('daily');
+  const [floats, setFloats] = useState([]);
   const [levelUpAnim, setLevelUpAnim] = useState(false);
   const today = todayStr();
   const todayLog = state.logs[today] || {};
 
-  // Computed stats
-  const computed = useMemo(() => {
-    const logs = state.logs;
-    const days = Object.keys(logs).sort();
-    let totalXP = 0;
-    const statXP = {};
-    STAT_CATEGORIES.forEach(s => statXP[s.id] = 0);
-    let currentStreak = 0;
-    let bestStreak = 0;
-    let tempStreak = 0;
-    const dailyScores = [];
-
-    days.forEach((day, idx) => {
-      const log = logs[day];
-      let dayDone = 0, dayTotal = 0;
-      state.objectives.filter(o=>o.active).forEach(o => {
-        dayTotal++;
-        if (log[o.id]) {
-          dayDone++;
-          const xp = o.diff * 10;
-          totalXP += xp;
-          statXP[o.cat] = (statXP[o.cat]||0) + xp;
-        }
-      });
-      const score = dayTotal > 0 ? Math.round((dayDone/dayTotal)*100) : 0;
-      dailyScores.push({ day, score, done:dayDone, total:dayTotal });
-      
-      if (score >= 50) {
-        tempStreak++;
-        if (tempStreak > bestStreak) bestStreak = tempStreak;
-      } else { tempStreak = 0; }
-    });
-
-    // Current streak (from today backwards)
-    currentStreak = 0;
-    for (let i = days.length - 1; i >= 0; i--) {
-      const log = logs[days[i]];
-      let done = 0, total = 0;
-      state.objectives.filter(o=>o.active).forEach(o => { total++; if(log[o.id]) done++; });
-      if (total > 0 && (done/total) >= 0.5) currentStreak++;
-      else break;
-    }
-
-    // Streak bonus
-    totalXP += currentStreak * 5;
-
-    let level = 1;
-    let xpUsed = 0;
-    while (totalXP - xpUsed >= xpForLevel(level)) {
-      xpUsed += xpForLevel(level);
-      level++;
-    }
-    const currentLevelXP = totalXP - xpUsed;
-    const nextLevelXP = xpForLevel(level);
-
-    // Stat levels
-    const statLevels = {};
-    STAT_CATEGORIES.forEach(s => {
-      let sl = 1, su = 0;
-      while (statXP[s.id] - su >= sl * 50) { su += sl * 50; sl++; }
-      statLevels[s.id] = sl;
-    });
-
-    // Weekly performance
-    const last7 = dailyScores.slice(-7);
-    const weekAvg = last7.length > 0 ? Math.round(last7.reduce((a,d)=>a+d.score,0)/last7.length) : 0;
-    
-    // Prev week
-    const prev7 = dailyScores.slice(-14,-7);
-    const prevAvg = prev7.length > 0 ? Math.round(prev7.reduce((a,d)=>a+d.score,0)/prev7.length) : 0;
-    const trend = weekAvg - prevAvg;
-
-    return { totalXP, level, currentLevelXP, nextLevelXP, statXP, statLevels, 
-             currentStreak, bestStreak, dailyScores, weekAvg, trend, daysPlayed: days.length };
+  // Auto-reset check every 30s
+  useEffect(() => {
+    const check = () => {
+      const t = todayStr();
+      if (!state.logs[t]) {
+        const ns = { ...state, logs: { ...state.logs, [t]: {} } };
+        setState(ns); save(ns);
+      }
+    };
+    check();
+    const iv = setInterval(check, 30000);
+    return () => clearInterval(iv);
   }, [state]);
 
-  const toggleObjective = (objId) => {
-    const wasComplete = todayLog[objId];
-    const newLogs = { ...state.logs, [today]: { ...todayLog, [objId]: !wasComplete } };
-    const newState = { ...state, logs: newLogs };
-    
-    if (!wasComplete) {
+  // Schedule notifs
+  useEffect(() => {
+    if (!state.notifEnabled || Notification.permission !== 'granted') return;
+    const now = new Date();
+    const todayObjs = state.objectives.filter(o => o.active && isObjActiveOn(o, today));
+    const times = [...new Set(todayObjs.map(o => o.reminderTime || '08:00'))];
+    times.forEach(time => {
+      const [h,m] = time.split(':').map(Number);
+      const target = new Date(now); target.setHours(h,m,0,0);
+      const delay = target - now;
+      if (delay > 0 && delay < 86400000) {
+        const pending = todayObjs.filter(o => (o.reminderTime||'08:00')===time && !todayLog[o.id]);
+        if (pending.length > 0) scheduleLocalNotif('⚔️ LifeQuest', `${pending.length} quête(s) en attente!`, delay);
+      }
+    });
+    // 21h warning
+    const w = new Date(now); w.setHours(21,0,0,0);
+    const wd = w - now;
+    if (wd > 0) {
+      const rem = todayObjs.filter(o => !todayLog[o.id]).length;
+      if (rem > 0) scheduleLocalNotif('🏰 Fin de journée', `${rem} quête(s) avant minuit!`, wd);
+    }
+  }, [state.notifEnabled, today]);
+
+  // Computed
+  const computed = useMemo(() => {
+    const logs = state.logs, days = Object.keys(logs).sort();
+    let totalXP = 0;
+    const statXP = {}; STAT_CATEGORIES.forEach(s => statXP[s.id] = 0);
+    let bestStreak = 0, tempStreak = 0;
+    const dailyScores = [];
+    let totalDone = 0, totalPossible = 0;
+
+    days.forEach(day => {
+      const log = logs[day]; let dd = 0, dt = 0;
+      state.objectives.filter(o=>o.active&&isObjActiveOn(o,day)).forEach(o => {
+        dt++; totalPossible++;
+        if (log[o.id]) { dd++; totalDone++; const xp=o.diff*10; totalXP+=xp; statXP[o.cat]=(statXP[o.cat]||0)+xp; }
+      });
+      const score = dt>0 ? Math.round((dd/dt)*100) : 0;
+      dailyScores.push({ day, score, done:dd, total:dt });
+      if (score >= 50) { tempStreak++; if (tempStreak > bestStreak) bestStreak = tempStreak; } else tempStreak = 0;
+    });
+
+    // Current streak (backwards)
+    let currentStreak = 0;
+    for (let i = days.length-1; i >= 0; i--) {
+      const log = logs[days[i]]; let d=0, t=0;
+      state.objectives.filter(o=>o.active&&isObjActiveOn(o,days[i])).forEach(o => { t++; if(log[o.id]) d++; });
+      if (t>0 && (d/t)>=0.5) currentStreak++; else break;
+    }
+
+    // Streak XP: +5/day base, +20 on even streak numbers
+    for (let s=1; s<=currentStreak; s++) { totalXP+=5; if(s%2===0) totalXP+=20; }
+    const streakBonusXP = Math.floor(currentStreak/2)*20;
+
+    let level=1, xpUsed=0;
+    while (totalXP-xpUsed >= xpForLevel(level)) { xpUsed+=xpForLevel(level); level++; }
+
+    const statLevels = {};
+    STAT_CATEGORIES.forEach(s => { let sl=1,su=0; while(statXP[s.id]-su>=sl*50){su+=sl*50;sl++;} statLevels[s.id]=sl; });
+
+    const last7 = dailyScores.slice(-7);
+    const weekAvg = last7.length>0 ? Math.round(last7.reduce((a,d)=>a+d.score,0)/last7.length) : 0;
+    const prev7 = dailyScores.slice(-14,-7);
+    const prevAvg = prev7.length>0 ? Math.round(prev7.reduce((a,d)=>a+d.score,0)/prev7.length) : 0;
+    const winRate = totalPossible>0 ? Math.round((totalDone/totalPossible)*100) : 0;
+
+    return { totalXP, level, currentLevelXP:totalXP-xpUsed, nextLevelXP:xpForLevel(level), statXP, statLevels,
+      currentStreak, bestStreak, dailyScores, weekAvg, trend:weekAvg-prevAvg, daysPlayed:days.length, winRate, totalDone, totalPossible, streakBonusXP };
+  }, [state]);
+
+  const prevStreakRef = useRef(computed.currentStreak);
+
+  const toggleObj = (objId) => {
+    const was = todayLog[objId];
+    const newLog = { ...todayLog, [objId]: !was };
+    const ns = { ...state, logs: { ...state.logs, [today]: newLog } };
+
+    if (!was) {
       const obj = state.objectives.find(o=>o.id===objId);
       const xp = obj.diff * 10;
-      const floatId = Date.now();
-      setXpFloats(p=>[...p, { id:floatId, amount:xp }]);
+      setFloats(p=>[...p, { id:Date.now(), amount:xp }]);
 
-      // Check level up
-      const oldLevel = computed.level;
-      // Quick recalc
-      let tXP = computed.totalXP + xp;
-      let nl = 1, nu = 0;
-      while (tXP - nu >= xpForLevel(nl)) { nu += xpForLevel(nl); nl++; }
-      if (nl > oldLevel) setLevelUpAnim(true);
+      // Check if streak goes to even after this
+      const activeToday = state.objectives.filter(o=>o.active&&isObjActiveOn(o,today));
+      const newDone = activeToday.filter(o=>o.id===objId?true:todayLog[o.id]).length;
+      const newScore = Math.round((newDone/activeToday.length)*100);
+      
+      // Recalc streak
+      let newStreak = computed.currentStreak;
+      const lastScore = computed.dailyScores.slice(-1)[0];
+      if (lastScore && lastScore.day === today && lastScore.score < 50 && newScore >= 50) newStreak++;
+      
+      if (newStreak % 2 === 0 && newStreak > 0 && newStreak !== prevStreakRef.current) {
+        setTimeout(() => setFloats(p=>[...p, { id:Date.now()+1, amount:20, label:'STREAK 🔥', color:'var(--gold)' }]), 600);
+      }
+      prevStreakRef.current = newStreak;
+
+      // Level up?
+      let tXP = computed.totalXP + xp, nl=1, nu=0;
+      while(tXP-nu>=xpForLevel(nl)){nu+=xpForLevel(nl);nl++;}
+      if (nl > computed.level) setLevelUpAnim(true);
     }
 
-    setState(newState);
-    saveState(newState);
+    setState(ns); save(ns);
   };
 
-  const activeObjs = state.objectives.filter(o=>o.active);
-  const todayDone = activeObjs.filter(o=>todayLog[o.id]).length;
-  const todayScore = activeObjs.length > 0 ? Math.round((todayDone/activeObjs.length)*100) : 0;
+  const todayActive = state.objectives.filter(o=>o.active&&isObjActiveOn(o,today));
+  const todayDone = todayActive.filter(o=>todayLog[o.id]).length;
+  const todayScore = todayActive.length>0 ? Math.round((todayDone/todayActive.length)*100) : 0;
   const title = getTitle(computed.level);
 
-  // Level up modal
-  useEffect(() => {
-    if (levelUpAnim) { const t = setTimeout(()=>setLevelUpAnim(false), 2000); return ()=>clearTimeout(t); }
-  }, [levelUpAnim]);
+  useEffect(() => { if(levelUpAnim){const t=setTimeout(()=>setLevelUpAnim(false),2500);return()=>clearTimeout(t);} }, [levelUpAnim]);
 
-  // Add objective
+  // Settings
   const [showAdd, setShowAdd] = useState(false);
-  const [addName, setAddName] = useState('');
-  const [addCat, setAddCat] = useState('str');
-  const [addDiff, setAddDiff] = useState(2);
+  const [af, setAF] = useState({ name:'', cat:'str', diff:2, schedule:'daily', customDays:[], weeklyDay:0, reminder:'08:00' });
+  const updateAF = (k,v) => setAF(p=>({...p,[k]:v}));
 
-  const addObjective = () => {
-    if (!addName.trim()) return;
-    const newObj = { id: Date.now(), name:addName.trim(), cat:addCat, diff:addDiff, active:true };
-    const newState = { ...state, objectives: [...state.objectives, newObj] };
-    setState(newState);
-    saveState(newState);
-    setAddName(''); setShowAdd(false);
+  const addObj = () => {
+    if (!af.name.trim()) return;
+    const o = { id:Date.now(), name:af.name.trim(), cat:af.cat, diff:af.diff, active:true,
+      schedule:af.schedule, customDays:af.schedule==='custom'?[...af.customDays]:[], weeklyDay:af.schedule==='weekly'?af.weeklyDay:0, reminderTime:af.reminder };
+    const ns = { ...state, objectives:[...state.objectives, o] };
+    setState(ns); save(ns); setAF(p=>({...p,name:''})); setShowAdd(false);
   };
 
-  const toggleObjActive = (id) => {
-    const newState = { ...state, objectives: state.objectives.map(o => o.id===id ? {...o,active:!o.active} : o) };
-    setState(newState);
-    saveState(newState);
+  const toggleActive = (id) => { const ns={...state,objectives:state.objectives.map(o=>o.id===id?{...o,active:!o.active}:o)};setState(ns);save(ns); };
+  const deleteObj = (id) => { const ns={...state,objectives:state.objectives.filter(o=>o.id!==id)};setState(ns);save(ns); };
+  const resetAll = () => { if(confirm('⚠️ Tout supprimer ?')){localStorage.removeItem(STORAGE_KEY);window.location.reload();} };
+
+  const toggleNotif = async () => {
+    if (!state.notifEnabled) {
+      const p = await requestNotifPermission();
+      if (p==='granted') { const ns={...state,notifEnabled:true};setState(ns);save(ns); }
+      else alert('Active les notifs dans les paramètres de ton navigateur.');
+    } else { const ns={...state,notifEnabled:false};setState(ns);save(ns); }
   };
 
-  const deleteObj = (id) => {
-    const newState = { ...state, objectives: state.objectives.filter(o=>o.id!==id) };
-    setState(newState);
-    saveState(newState);
-  };
-
-  const resetAll = () => {
-    if (confirm('⚠️ Supprimer TOUTES les données ? Cette action est irréversible.')) {
-      localStorage.removeItem('lifequest_v2');
-      window.location.reload();
-    }
-  };
-
-  const diffLabels = ['Facile','Normal','Difficile','Épique','Légendaire'];
-  const diffColors = ['var(--success)','var(--xp)','var(--str)','var(--int)','var(--gold)'];
-
-  const navItems = [
+  const NAV = [
     { id:'daily', icon:'⚔️', label:'Quêtes' },
     { id:'stats', icon:'📊', label:'Stats' },
     { id:'history', icon:'📜', label:'Journal' },
@@ -454,342 +492,316 @@ function Dashboard({ state, setState }) {
   ];
 
   return <div style={{maxWidth:500,margin:'0 auto',paddingBottom:80,minHeight:'100vh'}}>
-    {/* XP Floats */}
-    {xpFloats.map(f => <XPFloat key={f.id} amount={f.amount} onDone={()=>setXpFloats(p=>p.filter(x=>x.id!==f.id))} />)}
+    {floats.map(f=><XPFloat key={f.id} amount={f.amount} label={f.label} color={f.color} onDone={()=>setFloats(p=>p.filter(x=>x.id!==f.id))} />)}
 
-    {/* Level Up Overlay */}
-    {levelUpAnim && <div style={{
-      position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',
-      background:'rgba(0,0,0,0.8)',zIndex:9998,animation:'fadeIn 0.3s'
-    }}>
+    {levelUpAnim && <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.85)',zIndex:9998,animation:'fadeIn 0.3s'}}>
       <div style={{textAlign:'center',animation:'levelUp 1s ease-in-out'}}>
-        <div style={{fontSize:'4rem',marginBottom:8}}>🏆</div>
+        <div style={{fontSize:'4rem'}}>🏆</div>
         <div style={{fontFamily:"'Press Start 2P'",fontSize:'1.2rem',color:'var(--gold)',marginBottom:8}}>LEVEL UP!</div>
         <div style={{fontFamily:"'Cinzel'",fontSize:'2rem',color:'var(--xp)'}}>Niveau {computed.level}</div>
-        <div style={{color:'var(--text2)',marginTop:8,fontSize:'1.1rem'}}>{title}</div>
+        <div style={{color:'var(--text2)',marginTop:8}}>{title}</div>
       </div>
     </div>}
 
     {/* HEADER */}
     <div style={{padding:'16px 16px 0',animation:'fadeIn 0.5s'}}>
       <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
-        <div style={{
-          width:48,height:48,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
-          background:'linear-gradient(135deg,var(--gold)20,var(--int)20)',
-          border:'2px solid var(--gold)',fontSize:'1.4rem',flexShrink:0
-        }}>⚔️</div>
-        <div style={{flex:1}}>
+        <div style={{width:48,height:48,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
+          background:'linear-gradient(135deg,var(--gold)20,var(--int)20)',border:'2px solid var(--gold)',fontSize:'1.4rem',flexShrink:0}}>⚔️</div>
+        <div style={{flex:1,minWidth:0}}>
           <div style={{display:'flex',alignItems:'baseline',gap:8}}>
-            <span style={{fontFamily:"'Cinzel'",fontSize:'1.2rem',fontWeight:700,color:'var(--gold)'}}>{state.playerName}</span>
-            <span style={{fontSize:'0.75rem',color:'var(--text2)'}}>Nv.{computed.level}</span>
+            <span style={{fontFamily:"'Cinzel'",fontSize:'1.15rem',fontWeight:700,color:'var(--gold)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{state.playerName}</span>
+            <span style={{fontSize:'0.75rem',color:'var(--text2)',flexShrink:0}}>Nv.{computed.level}</span>
           </div>
-          <div style={{fontSize:'0.75rem',color:'var(--int)',fontStyle:'italic'}}>{title}</div>
-          <Bar value={computed.currentLevelXP} max={computed.nextLevelXP} color="var(--xp)" height={6} animated />
-          <div style={{fontSize:'0.65rem',color:'var(--text2)',marginTop:2}}>{computed.currentLevelXP}/{computed.nextLevelXP} XP</div>
+          <div style={{fontSize:'0.7rem',color:'var(--int)',fontStyle:'italic'}}>{title}</div>
+          <Bar value={computed.currentLevelXP} max={computed.nextLevelXP} color="var(--xp)" height={6} />
+          <div style={{fontSize:'0.6rem',color:'var(--text2)',marginTop:1}}>{computed.currentLevelXP}/{computed.nextLevelXP} XP</div>
         </div>
-        <div style={{textAlign:'center'}}>
-          <div style={{fontSize:'0.6rem',color:'var(--text2)',textTransform:'uppercase',letterSpacing:1}}>Streak</div>
-          <div style={{fontFamily:"'Press Start 2P'",fontSize:'1.1rem',color:computed.currentStreak>0?'var(--str)':'var(--text2)'}}>
-            {computed.currentStreak}🔥
-          </div>
+        <div style={{textAlign:'center',flexShrink:0}}>
+          <div style={{fontSize:'0.55rem',color:'var(--text2)',textTransform:'uppercase',letterSpacing:1}}>Streak</div>
+          <div style={{fontFamily:"'Press Start 2P'",fontSize:'1rem',
+            color:computed.currentStreak>0?'var(--str)':'var(--text2)',
+            animation:computed.currentStreak>=5?'streakPulse 2s infinite':'none'
+          }}>{computed.currentStreak}🔥</div>
         </div>
       </div>
     </div>
 
-    {/* CONTENT */}
     <div style={{padding:'0 16px'}}>
-      
-      {/* ── DAILY VIEW ── */}
-      {view === 'daily' && <div style={{animation:'fadeIn 0.4s'}}>
-        {/* Today score */}
-        <div style={{
-          textAlign:'center',padding:16,marginBottom:16,borderRadius:14,
-          background:`linear-gradient(135deg, var(--bg2), var(--bg3))`,
-          border:'1px solid var(--border)'
-        }}>
+
+      {/* DAILY */}
+      {view==='daily' && <div style={{animation:'fadeIn 0.4s'}}>
+        <div style={{textAlign:'center',padding:14,marginBottom:14,borderRadius:14,
+          background:'linear-gradient(135deg, var(--bg2), var(--bg3))',border:'1px solid var(--border)'}}>
           <div style={{fontSize:'2.5rem',fontFamily:"'Cinzel'",fontWeight:900,
-            color: todayScore >= 80 ? 'var(--success)' : todayScore >= 50 ? 'var(--gold)' : todayScore > 0 ? 'var(--str)' : 'var(--text2)'
-          }}>{todayScore}%</div>
-          <div style={{fontSize:'0.8rem',color:'var(--text2)'}}>{todayDone}/{activeObjs.length} quêtes · {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
-          <div style={{marginTop:8}}>
-            <Bar value={todayDone} max={activeObjs.length || 1} color="var(--gold)" height={8} animated />
+            color:todayScore>=80?'var(--success)':todayScore>=50?'var(--gold)':todayScore>0?'var(--str)':'var(--text2)'}}>
+            {todayScore}%
           </div>
+          <div style={{fontSize:'0.75rem',color:'var(--text2)'}}>
+            {todayDone}/{todayActive.length} quêtes · {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}
+          </div>
+          <div style={{marginTop:6}}><Bar value={todayDone} max={todayActive.length||1} color="var(--gold)" height={8} /></div>
+          <div style={{fontSize:'0.6rem',color:'var(--text2)',marginTop:4}}>Reset automatique à 23:59</div>
+          {todayActive.length===0 && <div style={{marginTop:8,fontSize:'0.8rem',color:'var(--text2)'}}>Pas de quête prévue aujourd'hui 🎉</div>}
         </div>
 
-        {/* Objectives */}
-        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
           {STAT_CATEGORIES.map(cat => {
-            const catObjs = activeObjs.filter(o=>o.cat===cat.id);
-            if (catObjs.length === 0) return null;
+            const objs = todayActive.filter(o=>o.cat===cat.id);
+            if (!objs.length) return null;
             return <div key={cat.id}>
-              <div style={{fontSize:'0.7rem',color:cat.color,textTransform:'uppercase',letterSpacing:2,marginBottom:4,marginTop:8}}>
-                {cat.icon} {cat.name}
-              </div>
-              {catObjs.map((o,i) => {
+              <div style={{fontSize:'0.65rem',color:cat.color,textTransform:'uppercase',letterSpacing:2,marginBottom:3,marginTop:8}}>{cat.icon} {cat.name}</div>
+              {objs.map((o,i) => {
                 const done = todayLog[o.id];
-                return <div key={o.id} onClick={()=>toggleObjective(o.id)} style={{
-                  display:'flex',alignItems:'center',gap:10,padding:'12px 14px',
-                  background: done ? cat.color+'12' : 'var(--bg2)',
-                  border:`1px solid ${done ? cat.color+'30' : 'rgba(255,255,255,0.05)'}`,
+                const si = SCHEDULE_TYPES.find(s=>s.id===o.schedule)?.icon||'';
+                return <div key={o.id} onClick={()=>toggleObj(o.id)} style={{
+                  display:'flex',alignItems:'center',gap:10,padding:'11px 12px',
+                  background:done?cat.color+'12':'var(--bg2)',
+                  border:`1px solid ${done?cat.color+'30':'rgba(255,255,255,0.05)'}`,
                   borderRadius:10,cursor:'pointer',transition:'all 0.3s',
                   animation:`slideIn 0.3s ease-out ${i*0.05}s both`,
-                  opacity: done ? 0.85 : 1,
                 }}>
-                  <div style={{
-                    width:24,height:24,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',
-                    border:`2px solid ${done ? cat.color : 'rgba(255,255,255,0.15)'}`,
-                    background: done ? cat.color : 'transparent',
-                    transition:'all 0.3s',fontSize:'0.8rem',color:'var(--bg)'
-                  }}>{done ? '✓' : ''}</div>
-                  <span style={{flex:1,fontSize:'0.95rem',textDecoration:done?'line-through':'none',
-                    color:done?'var(--text2)':'var(--text)'}}>{o.name}</span>
-                  <span style={{fontSize:'0.65rem',color:diffColors[o.diff-1],opacity:0.7}}>+{o.diff*10}xp</span>
+                  <div style={{width:24,height:24,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',
+                    border:`2px solid ${done?cat.color:'rgba(255,255,255,0.15)'}`,
+                    background:done?cat.color:'transparent',transition:'all 0.3s',fontSize:'0.8rem',color:'var(--bg)',flexShrink:0
+                  }}>{done?'✓':''}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:'0.9rem',textDecoration:done?'line-through':'none',
+                      color:done?'var(--text2)':'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.name}</div>
+                    <div style={{fontSize:'0.6rem',color:'var(--text2)'}}>{si} {o.reminderTime||''}</div>
+                  </div>
+                  <span style={{fontSize:'0.6rem',color:DIFF_COLORS[o.diff-1],opacity:0.7,flexShrink:0}}>+{o.diff*10}xp</span>
                 </div>;
               })}
             </div>;
           })}
         </div>
 
-        {todayScore === 100 && <div style={{
-          textAlign:'center',padding:20,marginTop:16,borderRadius:14,
-          background:'linear-gradient(135deg,var(--gold)10,var(--success)10)',
-          border:'1px solid var(--gold)30'
-        }}>
+        {todayScore===100 && todayActive.length>0 && <div style={{textAlign:'center',padding:16,marginTop:14,borderRadius:14,
+          background:'linear-gradient(135deg,var(--gold)10,var(--success)10)',border:'1px solid var(--gold)30'}}>
           <div style={{fontSize:'2rem'}}>🏆</div>
-          <div style={{fontFamily:"'Cinzel'",color:'var(--gold)',fontSize:'1.1rem'}}>Journée Parfaite!</div>
-          <div style={{fontSize:'0.8rem',color:'var(--text2)'}}>Toutes les quêtes accomplies</div>
+          <div style={{fontFamily:"'Cinzel'",color:'var(--gold)'}}>Journée Parfaite!</div>
         </div>}
       </div>}
 
-      {/* ── STATS VIEW ── */}
-      {view === 'stats' && <div style={{animation:'fadeIn 0.4s'}}>
-        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12,fontSize:'1.1rem'}}>Statistiques</h3>
+      {/* STATS */}
+      {view==='stats' && <div style={{animation:'fadeIn 0.4s'}}>
+        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12}}>Statistiques</h3>
         
-        {/* Stat cards */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:16}}>
-          {STAT_CATEGORIES.map(s => 
-            <StatCard key={s.id} stat={s} value={computed.statLevels[s.id]} />
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}}>
+          {STAT_CATEGORIES.map(s=><StatCard key={s.id} stat={s} value={computed.statLevels[s.id]} />)}
+        </div>
+
+        <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16,padding:12,background:'var(--bg2)',borderRadius:14,border:'1px solid var(--border)'}}>
+          {STAT_CATEGORIES.map(s=>
+            <Bar key={s.id} value={computed.statXP[s.id]||0} max={computed.statLevels[s.id]*50} color={s.color} height={10}
+              label={`${s.icon} ${s.name} Nv.${computed.statLevels[s.id]}`} />
           )}
         </div>
 
-        {/* Stat bars */}
-        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20,padding:14,background:'var(--bg2)',borderRadius:14,border:'1px solid var(--border)'}}>
-          {STAT_CATEGORIES.map(s => 
-            <Bar key={s.id} value={computed.statXP[s.id] || 0} max={computed.statLevels[s.id]*50} 
-              color={s.color} height={10} label={`${s.icon} ${s.name} Nv.${computed.statLevels[s.id]}`} animated />
-          )}
-        </div>
-
-        {/* General stats */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:14}}>
           {[
-            {label:'XP Total',value:computed.totalXP,icon:'⚡',color:'var(--xp)'},
-            {label:'Jours joués',value:computed.daysPlayed,icon:'📅',color:'var(--int)'},
-            {label:'Streak actuel',value:computed.currentStreak+'🔥',icon:'',color:'var(--str)'},
-            {label:'Meilleur streak',value:computed.bestStreak,icon:'👑',color:'var(--gold)'},
-            {label:'Moy. semaine',value:computed.weekAvg+'%',icon:'📈',color:'var(--success)'},
-            {label:'Tendance',value:(computed.trend>=0?'+':'')+computed.trend+'%',icon:computed.trend>=0?'📈':'📉',color:computed.trend>=0?'var(--success)':'var(--fail)'},
-          ].map((s,i) => 
-            <div key={i} style={{padding:14,background:'var(--bg2)',borderRadius:12,border:'1px solid rgba(255,255,255,0.05)',
-              animation:`fadeIn 0.4s ease-out ${i*0.08}s both`}}>
-              <div style={{fontSize:'0.7rem',color:'var(--text2)',marginBottom:4}}>{s.icon} {s.label}</div>
-              <div style={{fontSize:'1.3rem',fontWeight:700,color:s.color,fontFamily:"'Cinzel'"}}>{s.value}</div>
+            {l:'XP Total',v:computed.totalXP,i:'⚡',c:'var(--xp)'},
+            {l:'Jours joués',v:computed.daysPlayed,i:'📅',c:'var(--int)'},
+            {l:'Streak actuel',v:computed.currentStreak+'🔥',i:'',c:'var(--str)'},
+            {l:'Meilleur streak',v:computed.bestStreak,i:'👑',c:'var(--gold)'},
+            {l:'Moy. semaine',v:computed.weekAvg+'%',i:'📈',c:'var(--success)'},
+            {l:'Tendance',v:(computed.trend>=0?'+':'')+computed.trend+'%',i:computed.trend>=0?'📈':'📉',c:computed.trend>=0?'var(--success)':'var(--fail)'},
+            {l:'Win Rate',v:computed.winRate+'%',i:'🎯',c:'var(--wis)'},
+            {l:'Bonus streak',v:'+'+computed.streakBonusXP+'xp',i:'🔥',c:'var(--str)'},
+          ].map((s,i)=>
+            <div key={i} style={{padding:12,background:'var(--bg2)',borderRadius:12,border:'1px solid rgba(255,255,255,0.05)',
+              animation:`fadeIn 0.4s ease-out ${i*0.06}s both`}}>
+              <div style={{fontSize:'0.65rem',color:'var(--text2)',marginBottom:3}}>{s.i} {s.l}</div>
+              <div style={{fontSize:'1.2rem',fontWeight:700,color:s.c,fontFamily:"'Cinzel'"}}>{s.v}</div>
             </div>
           )}
         </div>
 
         {/* Weekly chart */}
-        <div style={{padding:14,background:'var(--bg2)',borderRadius:14,border:'1px solid var(--border)'}}>
-          <div style={{fontSize:'0.8rem',color:'var(--text2)',marginBottom:10}}>7 derniers jours</div>
+        <div style={{padding:12,background:'var(--bg2)',borderRadius:14,border:'1px solid var(--border)'}}>
+          <div style={{fontSize:'0.75rem',color:'var(--text2)',marginBottom:8}}>7 derniers jours</div>
           <div style={{display:'flex',alignItems:'flex-end',gap:4,height:100}}>
             {computed.dailyScores.slice(-7).map((d,i) => {
-              const h = Math.max(4, d.score);
-              const dayName = new Date(d.day).toLocaleDateString('fr-FR',{weekday:'short'}).slice(0,2);
-              const isToday = d.day === today;
-              return <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                <span style={{fontSize:'0.6rem',color: d.score >= 80 ? 'var(--success)' : d.score >= 50 ? 'var(--gold)' : 'var(--fail)'}}>
-                  {d.score}%
-                </span>
-                <div style={{
-                  width:'100%',height:h+'%',minHeight:4,borderRadius:4,
-                  background: d.score >= 80 ? 'var(--success)' : d.score >= 50 ? 'var(--gold)' : d.score > 0 ? 'var(--str)' : 'rgba(255,255,255,0.05)',
-                  animation:`barFill 0.6s ease-out ${i*0.1}s both`,
-                  boxShadow: isToday ? '0 0 10px var(--gold)40' : 'none',
-                }}/>
-                <span style={{fontSize:'0.6rem',color: isToday ? 'var(--gold)' : 'var(--text2)'}}>{dayName}</span>
+              const h = Math.max(4,d.score);
+              const dn = new Date(d.day).toLocaleDateString('fr-FR',{weekday:'short'}).slice(0,2);
+              const it = d.day===today;
+              return <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                <span style={{fontSize:'0.55rem',color:d.score>=80?'var(--success)':d.score>=50?'var(--gold)':'var(--fail)'}}>{d.score}%</span>
+                <div style={{width:'100%',height:h+'%',minHeight:4,borderRadius:4,
+                  background:d.score>=80?'var(--success)':d.score>=50?'var(--gold)':d.score>0?'var(--str)':'rgba(255,255,255,0.05)',
+                  animation:`barFill 0.6s ease-out ${i*0.1}s both`,boxShadow:it?'0 0 10px var(--gold)40':'none'}}/>
+                <span style={{fontSize:'0.55rem',color:it?'var(--gold)':'var(--text2)'}}>{dn}</span>
               </div>;
             })}
           </div>
         </div>
+
+        <div style={{marginTop:12,padding:10,background:'var(--str)08',borderRadius:10,border:'1px solid var(--str)20'}}>
+          <div style={{fontSize:'0.7rem',color:'var(--str)'}}>🔥 +20 XP à chaque streak pair (2, 4, 6, 8...)</div>
+        </div>
       </div>}
 
-      {/* ── HISTORY VIEW ── */}
-      {view === 'history' && <div style={{animation:'fadeIn 0.4s'}}>
-        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12,fontSize:'1.1rem'}}>Journal d'aventure</h3>
+      {/* HISTORY */}
+      {view==='history' && <div style={{animation:'fadeIn 0.4s'}}>
+        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12}}>Journal</h3>
         <div style={{display:'flex',flexDirection:'column',gap:6}}>
           {computed.dailyScores.slice().reverse().slice(0,30).map((d,i) => {
-            const log = state.logs[d.day] || {};
-            return <div key={d.day} style={{
-              padding:12,background:'var(--bg2)',borderRadius:10,
+            const log = state.logs[d.day]||{};
+            const dayObjs = state.objectives.filter(o=>o.active&&isObjActiveOn(o,d.day));
+            return <div key={d.day} style={{padding:10,background:'var(--bg2)',borderRadius:10,
               border:`1px solid ${d.score>=80?'var(--success)20':d.score>=50?'var(--gold)20':'var(--fail)20'}`,
-              animation:`slideIn 0.3s ease-out ${i*0.03}s both`
-            }}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-                <span style={{fontSize:'0.85rem',color:'var(--text)'}}>
-                  {new Date(d.day).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}
-                </span>
-                <span style={{fontSize:'0.85rem',fontWeight:700,fontFamily:"'Cinzel'",
-                  color:d.score>=80?'var(--success)':d.score>=50?'var(--gold)':'var(--fail)'}}>
-                  {d.score}%
-                </span>
+              animation:`slideIn 0.3s ease-out ${i*0.03}s both`}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:'0.8rem'}}>{new Date(d.day).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</span>
+                <span style={{fontSize:'0.8rem',fontWeight:700,fontFamily:"'Cinzel'",
+                  color:d.score>=80?'var(--success)':d.score>=50?'var(--gold)':'var(--fail)'}}>{d.score}%</span>
               </div>
-              <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                {activeObjs.map(o => {
-                  const cat = STAT_CATEGORIES.find(s=>s.id===o.cat);
-                  return <span key={o.id} style={{
-                    fontSize:'0.65rem',padding:'2px 6px',borderRadius:4,
-                    background: log[o.id] ? cat.color+'20' : 'rgba(255,255,255,0.03)',
-                    color: log[o.id] ? cat.color : 'var(--text2)',
-                    border:`1px solid ${log[o.id] ? cat.color+'30' : 'rgba(255,255,255,0.05)'}`,
-                    textDecoration: log[o.id] ? 'none' : 'line-through',
-                    opacity: log[o.id] ? 1 : 0.4,
-                  }}>{o.name}</span>;
+              <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
+                {dayObjs.map(o=>{
+                  const cat=STAT_CATEGORIES.find(s=>s.id===o.cat);
+                  return <span key={o.id} style={{fontSize:'0.6rem',padding:'1px 5px',borderRadius:4,
+                    background:log[o.id]?cat.color+'20':'rgba(255,255,255,0.03)',color:log[o.id]?cat.color:'var(--text2)',
+                    border:`1px solid ${log[o.id]?cat.color+'30':'rgba(255,255,255,0.05)'}`,
+                    textDecoration:log[o.id]?'none':'line-through',opacity:log[o.id]?1:0.4}}>{o.name}</span>;
                 })}
               </div>
             </div>;
           })}
-          {computed.dailyScores.length === 0 && <p style={{textAlign:'center',color:'var(--text2)',padding:40}}>
-            Aucune entrée pour l'instant. Commence par valider tes quêtes du jour !
-          </p>}
+          {!computed.dailyScores.length && <p style={{textAlign:'center',color:'var(--text2)',padding:40}}>Commence tes quêtes!</p>}
         </div>
       </div>}
 
-      {/* ── SETTINGS VIEW ── */}
-      {view === 'settings' && <div style={{animation:'fadeIn 0.4s'}}>
-        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12,fontSize:'1.1rem'}}>Configuration</h3>
+      {/* SETTINGS */}
+      {view==='settings' && <div style={{animation:'fadeIn 0.4s'}}>
+        <h3 style={{fontFamily:"'Cinzel'",color:'var(--gold)',marginBottom:12}}>Config</h3>
         
-        {/* Objectives management */}
+        {/* Notifs */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:12,background:'var(--bg2)',borderRadius:10,border:'1px solid var(--border)',marginBottom:12}}>
+          <div><div style={{fontSize:'0.9rem'}}>🔔 Notifications</div>
+            <div style={{fontSize:'0.6rem',color:'var(--text2)'}}>Rappels + alerte 21h</div></div>
+          <button onClick={toggleNotif} style={{padding:'6px 16px',borderRadius:20,border:'none',cursor:'pointer',fontSize:'0.8rem',fontWeight:600,
+            background:state.notifEnabled?'var(--success)':'rgba(255,255,255,0.1)',color:state.notifEnabled?'var(--bg)':'var(--text2)'}}>{state.notifEnabled?'ON':'OFF'}</button>
+        </div>
+
+        {/* Quêtes */}
         <div style={{marginBottom:16}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <span style={{fontSize:'0.85rem',color:'var(--text2)'}}>Quêtes actives</span>
-            <button onClick={()=>setShowAdd(!showAdd)} style={{
-              padding:'5px 12px',background:'var(--gold)15',border:'1px solid var(--gold)40',
-              borderRadius:8,color:'var(--gold)',fontSize:'0.8rem',cursor:'pointer'
-            }}>{showAdd ? 'Annuler' : '+ Ajouter'}</button>
+            <span style={{fontSize:'0.85rem',color:'var(--text2)'}}>Quêtes</span>
+            <button onClick={()=>setShowAdd(!showAdd)} style={{padding:'5px 12px',background:'var(--gold)15',border:'1px solid var(--gold)40',
+              borderRadius:8,color:'var(--gold)',fontSize:'0.8rem',cursor:'pointer'}}>{showAdd?'Annuler':'+ Ajouter'}</button>
           </div>
 
           {showAdd && <div style={{background:'var(--bg2)',borderRadius:10,padding:12,marginBottom:8,border:'1px solid var(--border)'}}>
-            <input value={addName} onChange={e=>setAddName(e.target.value)} placeholder="Nouvelle quête..."
-              onKeyDown={e=>e.key==='Enter'&&addObjective()}
-              style={{width:'100%',padding:'8px 12px',background:'var(--bg3)',border:'1px solid rgba(255,255,255,0.08)',
-                borderRadius:6,color:'var(--text)',fontSize:'0.9rem',fontFamily:"'Rajdhani'",outline:'none',marginBottom:8}}
-            />
-            <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
-              {STAT_CATEGORIES.map(s => 
-                <button key={s.id} onClick={()=>setAddCat(s.id)} style={{
-                  padding:'4px 8px',borderRadius:12,border:'1px solid',fontSize:'0.7rem',cursor:'pointer',
-                  background: addCat===s.id ? s.color+'20' : 'transparent',
-                  borderColor: addCat===s.id ? s.color : 'rgba(255,255,255,0.1)',
-                  color: addCat===s.id ? s.color : 'var(--text2)',
-                }}>{s.icon}</button>
+            <input value={af.name} onChange={e=>updateAF('name',e.target.value)} placeholder="Nouvelle quête..."
+              onKeyDown={e=>e.key==='Enter'&&addObj()}
+              style={{width:'100%',padding:'8px 10px',background:'var(--bg3)',border:'1px solid rgba(255,255,255,0.08)',
+                borderRadius:6,color:'var(--text)',fontSize:'0.85rem',fontFamily:"'Rajdhani'",outline:'none',marginBottom:8}} />
+            <div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:6}}>
+              {STAT_CATEGORIES.map(s=>
+                <button key={s.id} onClick={()=>updateAF('cat',s.id)} style={{padding:'3px 7px',borderRadius:10,border:'1px solid',fontSize:'0.65rem',cursor:'pointer',
+                  background:af.cat===s.id?s.color+'20':'transparent',borderColor:af.cat===s.id?s.color:'rgba(255,255,255,0.1)',color:af.cat===s.id?s.color:'var(--text2)'}}>{s.icon}</button>
               )}
             </div>
-            <button onClick={addObjective} style={{
-              width:'100%',padding:8,background:'var(--gold)20',border:'1px solid var(--gold)40',
-              borderRadius:6,color:'var(--gold)',cursor:'pointer',fontSize:'0.85rem'
-            }}>Confirmer</button>
+            <div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:6}}>
+              {SCHEDULE_TYPES.map(s=>
+                <button key={s.id} onClick={()=>updateAF('schedule',s.id)} style={{padding:'3px 6px',borderRadius:6,border:'1px solid',fontSize:'0.6rem',cursor:'pointer',
+                  background:af.schedule===s.id?'var(--xp)20':'transparent',borderColor:af.schedule===s.id?'var(--xp)':'rgba(255,255,255,0.08)',color:af.schedule===s.id?'var(--xp)':'var(--text2)'}}>{s.icon} {s.label}</button>
+              )}
+            </div>
+            {af.schedule==='custom' && <div style={{display:'flex',gap:3,marginBottom:6}}>
+              {DAYS_OF_WEEK.map((d,i)=>
+                <button key={i} onClick={()=>setAF(p=>({...p,customDays:p.customDays.includes(i)?p.customDays.filter(x=>x!==i):[...p.customDays,i]}))}
+                  style={{flex:1,padding:'4px',borderRadius:4,border:'1px solid',fontSize:'0.65rem',cursor:'pointer',
+                    background:af.customDays.includes(i)?'var(--dex)20':'transparent',borderColor:af.customDays.includes(i)?'var(--dex)':'rgba(255,255,255,0.08)',color:af.customDays.includes(i)?'var(--dex)':'var(--text2)'}}>{d}</button>
+              )}
+            </div>}
+            {af.schedule==='weekly' && <div style={{display:'flex',gap:3,marginBottom:6}}>
+              {DAYS_OF_WEEK.map((d,i)=>
+                <button key={i} onClick={()=>updateAF('weeklyDay',i)} style={{flex:1,padding:'4px',borderRadius:4,border:'1px solid',fontSize:'0.65rem',cursor:'pointer',
+                  background:af.weeklyDay===i?'var(--int)20':'transparent',borderColor:af.weeklyDay===i?'var(--int)':'rgba(255,255,255,0.08)',color:af.weeklyDay===i?'var(--int)':'var(--text2)'}}>{d}</button>
+              )}
+            </div>}
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+              <span style={{fontSize:'0.7rem',color:'var(--text2)'}}>⏰</span>
+              <input type="time" value={af.reminder} onChange={e=>updateAF('reminder',e.target.value)}
+                style={{padding:'3px 6px',background:'var(--bg3)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:4,color:'var(--text)',fontSize:'0.8rem',fontFamily:"'Rajdhani'",outline:'none'}} />
+            </div>
+            <button onClick={addObj} style={{width:'100%',padding:8,background:'var(--gold)20',border:'1px solid var(--gold)40',
+              borderRadius:6,color:'var(--gold)',cursor:'pointer',fontSize:'0.85rem'}}>Confirmer</button>
           </div>}
 
           <div style={{display:'flex',flexDirection:'column',gap:4}}>
-            {state.objectives.map(o => {
-              const cat = STAT_CATEGORIES.find(s=>s.id===o.cat);
-              return <div key={o.id} style={{
-                display:'flex',alignItems:'center',gap:8,padding:'8px 12px',
-                background:'var(--bg2)',borderRadius:8,border:'1px solid rgba(255,255,255,0.05)',
-                opacity: o.active ? 1 : 0.4
-              }}>
-                <span>{cat?.icon}</span>
-                <span style={{flex:1,fontSize:'0.85rem'}}>{o.name}</span>
-                <button onClick={()=>toggleObjActive(o.id)} style={{
-                  padding:'3px 8px',background:'none',border:'1px solid rgba(255,255,255,0.1)',
-                  borderRadius:6,color:o.active?'var(--success)':'var(--text2)',cursor:'pointer',fontSize:'0.7rem'
-                }}>{o.active ? 'ON' : 'OFF'}</button>
-                <button onClick={()=>deleteObj(o.id)} style={{
-                  background:'none',border:'none',color:'var(--fail)',cursor:'pointer',fontSize:'1rem'
-                }}>×</button>
+            {state.objectives.map(o=>{
+              const cat=STAT_CATEGORIES.find(s=>s.id===o.cat);
+              const sl=SCHEDULE_TYPES.find(s=>s.id===o.schedule)?.label||'Quotidien';
+              return <div key={o.id} style={{display:'flex',alignItems:'center',gap:6,padding:'8px 10px',
+                background:'var(--bg2)',borderRadius:8,border:'1px solid rgba(255,255,255,0.05)',opacity:o.active?1:0.4}}>
+                <span style={{fontSize:'0.9rem'}}>{cat?.icon}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:'0.8rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.name}</div>
+                  <div style={{fontSize:'0.6rem',color:'var(--text2)'}}>{sl} · {o.reminderTime||'08:00'}</div>
+                </div>
+                <button onClick={()=>toggleActive(o.id)} style={{padding:'2px 8px',background:'none',border:'1px solid rgba(255,255,255,0.1)',borderRadius:6,
+                  color:o.active?'var(--success)':'var(--text2)',cursor:'pointer',fontSize:'0.65rem'}}>{o.active?'ON':'OFF'}</button>
+                <button onClick={()=>deleteObj(o.id)} style={{background:'none',border:'none',color:'var(--fail)',cursor:'pointer',fontSize:'0.95rem'}}>×</button>
               </div>;
             })}
           </div>
         </div>
 
-        {/* Export/Reset */}
-        <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:24}}>
+        <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:20}}>
           <button onClick={()=>{
-            const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-            const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-            a.download='lifequest_backup.json'; a.click();
-          }} style={{
-            padding:12,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,
-            color:'var(--xp)',cursor:'pointer',fontSize:'0.9rem',fontFamily:"'Rajdhani'"
-          }}>📦 Exporter les données (JSON)</button>
+            const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+            const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='lifequest_backup.json';a.click();
+          }} style={{padding:10,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,color:'var(--xp)',cursor:'pointer',fontSize:'0.85rem'}}>📦 Exporter</button>
           
-          <label style={{
-            padding:12,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,
-            color:'var(--success)',cursor:'pointer',fontSize:'0.9rem',fontFamily:"'Rajdhani'",textAlign:'center'
-          }}>📥 Importer une sauvegarde
+          <label style={{padding:10,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,color:'var(--success)',cursor:'pointer',fontSize:'0.85rem',textAlign:'center'}}>
+            📥 Importer
             <input type="file" accept=".json" style={{display:'none'}} onChange={e=>{
-              const f = e.target.files[0]; if(!f) return;
-              const r = new FileReader();
-              r.onload = ev => {
-                try { const d = JSON.parse(ev.target.result); setState(d); saveState(d); alert('Import réussi!'); }
-                catch { alert('Fichier invalide'); }
-              };
-              r.readAsText(f);
-            }}/>
+              const f=e.target.files[0];if(!f)return;const r=new FileReader();
+              r.onload=ev=>{try{const d=JSON.parse(ev.target.result);setState(d);save(d);alert('OK!');}catch{alert('Erreur');}};r.readAsText(f);}} />
           </label>
-
-          <button onClick={resetAll} style={{
-            padding:12,background:'var(--fail)10',border:'1px solid var(--fail)30',borderRadius:10,
-            color:'var(--fail)',cursor:'pointer',fontSize:'0.9rem',fontFamily:"'Rajdhani'"
-          }}>🗑️ Réinitialiser tout</button>
+          <button onClick={resetAll} style={{padding:10,background:'var(--fail)10',border:'1px solid var(--fail)30',borderRadius:10,color:'var(--fail)',cursor:'pointer',fontSize:'0.85rem'}}>🗑️ Reset total</button>
         </div>
       </div>}
     </div>
 
-    {/* BOTTOM NAV */}
-    <div style={{
-      position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:500,
-      display:'flex',background:'var(--bg2)',borderTop:'1px solid var(--border)',
-      padding:'8px 0',paddingBottom:'max(8px, env(safe-area-inset-bottom))',zIndex:100,
-      backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'
-    }}>
-      {navItems.map(n => 
-        <button key={n.id} onClick={()=>setView(n.id)} style={{
-          flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,
+    {/* NAV */}
+    <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:500,
+      display:'flex',background:'var(--bg2)f0',borderTop:'1px solid var(--border)',
+      padding:'6px 0',paddingBottom:'max(6px, env(safe-area-inset-bottom))',zIndex:100,
+      backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
+      {NAV.map(n=>
+        <button key={n.id} onClick={()=>setView(n.id)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:1,
           background:'none',border:'none',cursor:'pointer',padding:'4px 0',
-          color: view===n.id ? 'var(--gold)' : 'var(--text2)',
-          transition:'color 0.2s'
-        }}>
-          <span style={{fontSize:'1.2rem'}}>{n.icon}</span>
-          <span style={{fontSize:'0.6rem',letterSpacing:1,textTransform:'uppercase'}}>{n.label}</span>
+          color:view===n.id?'var(--gold)':'var(--text2)',transition:'color 0.2s'}}>
+          <span style={{fontSize:'1.1rem'}}>{n.icon}</span>
+          <span style={{fontSize:'0.55rem',letterSpacing:1,textTransform:'uppercase'}}>{n.label}</span>
         </button>
       )}
     </div>
   </div>;
 }
 
-// ─── APP ROOT ───
+// ─── ROOT ───
 function App() {
-  const [state, setState] = useState(loadState);
-  const hasSetup = state.objectives.length > 0;
+  const [state, setState] = useState(() => {
+    let s = load();
+    // Migrate v2
+    if (!s.objectives?.length) {
+      try { const v2=JSON.parse(localStorage.getItem('lifequest_v2'));
+        if(v2?.objectives?.length) { s={...v2,objectives:v2.objectives.map(o=>({...o,schedule:o.schedule||'daily',customDays:o.customDays||[],weeklyDay:o.weeklyDay||0,reminderTime:o.reminderTime||'08:00'}))}; save(s); }
+      } catch{}
+    }
+    // Ensure today log
+    const t=todayStr(); if(s.objectives?.length && !s.logs[t]){s={...s,logs:{...s.logs,[t]:{}}};save(s);}
+    return s;
+  });
 
-  const handleSetupComplete = (data) => {
-    const newState = { ...DEFAULT_STATE, ...data, createdAt: todayStr() };
-    setState(newState);
-    saveState(newState);
-  };
-
-  if (!hasSetup) return <SetupPage onComplete={handleSetupComplete} />;
+  if (!state.objectives?.length) return <SetupPage onComplete={(data)=>{
+    const ns={...DEFAULT_STATE,...data,createdAt:todayStr(),logs:{[todayStr()]:{}}};setState(ns);save(ns);
+  }} />;
   return <Dashboard state={state} setState={setState} />;
 }
 
