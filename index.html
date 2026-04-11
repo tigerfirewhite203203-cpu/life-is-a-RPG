@@ -3,144 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Life RPG</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Level Up My Life</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
-        .progress-bar-fill { transition: width 0.5s ease-in-out; }
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --accent: #22c55e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Écrans */
+        .screen {
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .hidden { display: none; }
+
+        /* Setup Screen - Sélection des objectifs */
+        .goal-option {
+            background: #334155;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .goal-option:hover { border-color: var(--primary); }
+        .goal-option.selected { background: var(--primary); color: white; }
+
+        /* Dashboard Screen */
+        .stats-container {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .progress-bar-bg {
+            background: #334155;
+            height: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        #progress-fill {
+            background: var(--accent);
+            width: 0%;
+            height: 100%;
+            transition: width 0.4s ease;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #334            155;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .task-item.completed {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        /* Animations */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .level-up-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--accent);
+            color: white;
+            padding: 2rem;
+            border-radius: 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            z-index: 100;
+            display: none;
+            animation: pop 0.5s ease;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="max-w-md mx-auto">
-        <!-- STATS CARD -->
-        <div class="bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <span class="text-sm font-bold text-blue-400 uppercase tracking-widest">Niveau <span id="level-val">1</span></span>
-                <span class="text-sm font-bold text-yellow-500">💰 <span id="gold-val">0</span></span>
+<body>
+
+    <!-- POPUP LEVEL UP -->
+    <div id="level-up-popup" class="level-up-popup">LEVEL UP! 🎉</div>
+
+    <!-- SCREEN 1: SETUP -->
+    <div id="setup-screen" class="screen">
+        <h2>Choisir tes Quêtes</h2>
+        <p>Sélectionne tes objectifs pour commencer</p>
+        <div id => goals-list>
+            <div class="goal-option" onclick="toggleGoal(this, 'Sport')">🏋️ Sport</div>
+            <div class="goal-option" onclick="toggleGoal(this, 'Lecture')">📚 Lecture</div>
+            <div class="goal-option" onclick="toggleGoal(this, 'Code')">💻 Apprendre le Code</div>
+            <div class="goal-option" onclick="toggleGoal(this, 'Méditation')">🧘 Méditation</div>
+        </div>
+        <button onclick="startGame()">Commencer l'aventure</button>
+    </div>
+
+    <!-- SCREEN 2: DASHBOARD -->
+    <div id="game-screen" class="screen hidden">
+        <div class="stats-container">
+            <div style="display: flex; justify-content: space-between;">
+                <span id="lvl-display">Niveau 1</span>
+                <span id="xp-display">0/100 XP</span>
             </div>
-            
-            <div class="space-y-2">
-                <div class="flex justify-between text-xs text-slate-400">
-                    <span>Expérience</span>
-                    <span id="xp-percent">0%</span>
-                </div>
-                <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
-                    <div id="xp-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-                <div class="text-xs text-slate-500 text-right" id="xp-total-text">0 / 100</div>
+            <div class="progress-bar-bg">
+                <div id="progress-fill"></div>
             </div>
         </div>
 
-        <!-- INPUT SECTION -->
-        <div class="bg-slate-800 p-4 rounded-xl mb-6 shadow-lg">
-            <input type="text" id="task-input" placeholder="Nouvelle mission..." class="w-full bg-slate-700 border-none rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 mb-3 outline-none">
-            <div class="flex gap-2">
-                <button onclick="addTask(1)" class="flex-1 bg-blue-600 hover:bg-blue-500 p-2 rounded-lg font-bold text-sm transition">Facile</button>
-                <button onclick="addTask(2)" class="flex-1 bg-purple-600 hover:bg-purple-500 p-2 rounded-lg font-bold text-sm transition">Moyen</button>
-                <button onclick="addTask(3)" class                class="flex-1 bg-red-600 hover:bg-red-500 p-2 rounded-lg font-bold text-sm transition">Dur</button>
-            </div>
-        </div>
-
-        <!-- QUEST LIST -->
-        <h2 class="text-slate-400 font-bold mb-3 uppercase text-xs tracking-widest">Missions en cours (<span id="quest-count">0</span>)</h2>
-        <div id="quest-list" class="space-y-3">
-            <!-- Quests will appear here -->
+        <div id="active-tasks">
+            <!-- Les tâches apparaîtront ici -->
         </div>
     </div>
 
     <script>
-        let state = {
-            level: 1,
-            xp: 0,
-            xpNext: 100,
-            gold: 0,
-            quests: []
-        };
+        let selectedGoals = [];
+        let xp = 0;
+        let level = 1;
+        let xpNextLevel = 100;
 
-        // Load from LocalStorage
-        const saved = localStorage.getItem('rpg_save');
-        if (saved) state = JSON.parse(saved);
-
-        function save() {
-            localStorage.setItem('rpg_save', JSON.stringify(state));
-            render();
-        }
-
-        function addTask(difficulty) {
-            const input = document.getElementById('task-input');
-            if (!input.value.trim()) return;
-            
-            const quest = {
-                id: Date.now(),
-                text: input.value,
-                difficulty: difficulty, // 1: easy, 2: medium, 3: hard
-                reward: difficulty * 20
-            };
-            
-            state.quests.push(quest);
-            input.value = '';
-            save();
-        }
-
-        function completeQuest(id) {
-            const index = state.quests.findIndex(q => q.id === id);
-            if (index > -1) {
-                const quest = state.quests[index];
-                state.xp += quest.reward;
-                
-                // Level Up Logic
-                if (state.xp >= state.xpNext) {
-                    state.xp -= state.xpNext;
-                    state.level++;
-                    state.xpNext = Math.floor(state.xpNext * 1.2);
-                    alert("LEVEL UP! Vous êtes maintenant niveau " + state.level);
-                }
-                
-                state.quests.splice(index, 1);
-                save();
+        function toggleGoal(el, goal) {
+            el.classList.toggle('selected');
+            if (selectedGoals.includes(goal)) {
+                selectedGoals = selectedGoals.filter(g => g !== goal);
+            } else {
+                selectedGoals.push(goal);
             }
         }
 
-        function deleteQuest(id) {
-            state.quests = state.quests.filter(q => q.id !== id);
-            save();
+        function startGame() {
+            if (selectedGoals.length === 0) {
+                alert("Choisis au moins un objectif !");
+                return;
+            }
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            renderTasks();
         }
 
-        function render() {
-            // Render Stats
-            document.getElementById('xp-bar').style.width = (state.xp / state.xpNext * 100) + '%';
-            document.getElementById('xp-total-text').innerText = `${Math.floor(state.xp)} / ${state.xpNext}`;
-            document.getElementById('xp-percent').innerText = Math.floor((state.xp / state.prototypeNext || 1) * 100) + '%'; // Simplified
-            // Correcting the text logic
-            document.querySelector('#xp-percent').innerText = Math.floor((state.xp / state.xpNext) * 100) + '%';
-            
-            // Render List
-            const list = document.getElementById('quest-list');
-            const countEl = document.getElementById('quest-count');
-            list.innerHTML = '';
-            countEl.innerText = state.quests.length;
-
-            state.quests.forEach(q => {
-                const color = q.difficulty === 1 ? 'border-blue-500' : q.difficulty === 2 ? 'border-purple-500' : 'border-red-500';
+        function renderTasks() {
+            const container = document.getElementById('active-tasks');
+            container.innerHTML = '';
+            selectedGoals.forEach((goal, index) => {
                 const div = document.createElement('div');
-                div.className = `bg-slate-800 p-4 rounded-xl border-l-4 ${color} flex justify-between items-center shadow-md`;
-                div.innerHTML = `
-                    <div>
-                        <p class="text-white font-medium">${q.text}</p>
-                        <p class="text-xs text-slate-500">+${q.reward} XP</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="completeQuest(${q.id})" class="bg-green-600 p-2 rounded-lg text-xs font-bold">OK</button>
-                        <button onclick="deleteQuest(${q.id})" class="bg-slate-700 p-2 rounded-lg text-xs font-bold text-red-400">X</button>
-                    </div>
-                `;
-                list.appendChild(div);
+                div.className = 'task-item';
+                div.innerHTML = `<span>${goal}</span> <span>+25 XP</span>`;
+                div.onclick = () => completeTask(div, 25);
+                container.appendChild(div);
             });
         }
 
-        // Initial render
-        render();
+        function completeTask(element, amount) {
+            if (element.classList.contains('completed')) return;
+
+            element.classList.add('completed');
+            addXP(amount);
+        }
+
+        function addXP(amount) {
+            xp += amount;
+            
+            if (xp >= xpNextLevel) {
+                levelUp();
+            }
+
+            updateUI();
+        }
+
+        function levelUp() {
+            level++;
+            xp = xp - xpNextLevel;
+            xpNextLevel = Math.round(xpNextLevel * 1.2); // Le niveau suivant est plus dur
+            
+            const popup = document.getElementById('level-up-popup');
+            popup.style.display = 'block';
+            setTimeout(() => { popup.style.display = 'none'; }, 2000);
+        }
+
+        function updateUI() {
+            document.getElementById('lvl-display').innerText = `Niveau ${level}`;
+            document.getElementById('xp-display').innerText = `${xp}/${xpNextLevel} XP`;
+            const progressPercent = (xp / xpNextLevel) * 100;
+            document.getElementById('progress-fill').style.width = progressPercent + '%';
+        }
     </script>
 </body>
 </html>
